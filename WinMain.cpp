@@ -13,6 +13,10 @@
 #include <d3d11.h>
 #include <dxgi.h>
 #include <dxgi1_3.h>
+#include <d3dcompiler.h>
+#include <DirectXMath.h>
+
+#include <stdio.h>
 
 #include "Win32Window.hpp"
 
@@ -35,16 +39,55 @@ public:
         hr = CreateDeviceResources();
         if (SUCCEEDED(hr))
         {
-            hr = CreateWindowResources(hwnd);
-            if (FAILED(hr))
+            hr = CreateShaders();
+            if (SUCCEEDED(hr))
             {
-                OutputDebugStringA("Failed to create D3D11 Window Resources");
+                hr = CreateQuad();
+                if (SUCCEEDED(hr))
+                {
+                    hr = CreateWindowResources(hwnd);
+                    if (FAILED(hr))
+                        OutputDebugStringA("Failed to create D3D11 Window Resources");
+                }
+                else
+                    OutputDebugStringA("Failed to create quad");
             }
+            else
+                OutputDebugStringA("Failed to create shaders\n");
         }
         else
-        {
             OutputDebugStringA("Failed to creat D3D11 Device Resources\n");
-        }
+    }
+
+    void Draw()
+    {
+        const float teal[] = {0.098f, 0.439f, 0.439f, 1.000f};
+        pContext->ClearRenderTargetView(
+            pRenderTarget,
+            teal);
+        // context->ClearDepthStencilView(
+        //     depthStencil,
+        //     D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+        //     1.0f,
+        //     0);
+
+        // Set the render target.
+        pContext->OMSetRenderTargets(
+            1,
+            &pRenderTarget,
+            nullptr);
+
+        UINT stride = sizeof(DirectX::XMFLOAT2);
+        UINT offset = 0;
+
+        pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+        pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        pContext->IASetInputLayout(m_pInputLayout);
+        pContext->VSSetShader(m_pVertexShader, nullptr, 0);
+        pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+        pContext->PSSetShader(m_pPixelShader, nullptr, 0);
+        pContext->DrawIndexed(m_indexCount, 0, 0);
     }
 
 private:
@@ -181,6 +224,135 @@ private:
 
         return hr;
     }
+
+    ID3D11Buffer *m_pVertexBuffer;
+    ID3D11Buffer *m_pIndexBuffer;
+    unsigned int m_indexCount;
+    ID3D11VertexShader *m_pVertexShader;
+    ID3D11InputLayout *m_pInputLayout;
+    ID3D11InputLayout *m_pInputLayoutExtended;
+    ID3D11PixelShader *m_pPixelShader;
+    ID3D11Buffer *m_pConstantBuffer;
+
+    HRESULT CreateShaders()
+    {
+        HRESULT hr = S_OK;
+
+        // Use the Direct3D device to load resources into graphics memory.
+
+        // You'll need to use a file loader to load the shader bytecode. In this
+        // example, we just use the standard library.
+        FILE *vShader, *pShader;
+        BYTE *bytes;
+
+        size_t destSize = 4096;
+        size_t bytesRead = 0;
+        bytes = new BYTE[destSize];
+
+        fopen_s(&vShader, "shaders/VShader.cso", "rb");
+        bytesRead = fread_s(bytes, destSize, 1, 4096, vShader);
+        hr = pDevice->CreateVertexShader(
+            bytes,
+            bytesRead,
+            nullptr,
+            &m_pVertexShader);
+
+        D3D11_INPUT_ELEMENT_DESC iaDesc[] =
+            {
+                {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+                 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+
+                {"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT,
+                 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+            };
+
+        hr = pDevice->CreateInputLayout(
+            iaDesc,
+            ARRAYSIZE(iaDesc),
+            bytes,
+            bytesRead,
+            &m_pInputLayout);
+
+        delete bytes;
+
+        bytes = new BYTE[destSize];
+        bytesRead = 0;
+        fopen_s(&pShader, "shaders/PShader.cso", "rb");
+        bytesRead = fread_s(bytes, destSize, 1, 4096, pShader);
+        hr = pDevice->CreatePixelShader(
+            bytes,
+            bytesRead,
+            nullptr,
+            &m_pPixelShader);
+
+        delete bytes;
+
+        // CD3D11_BUFFER_DESC cbDesc(
+        //     sizeof(ConstantBufferStruct),
+        //     D3D11_BIND_CONSTANT_BUFFER);
+
+        // hr = device->CreateBuffer(
+        //     &cbDesc,
+        //     nullptr,
+        //     m_pConstantBuffer.GetAddressOf());
+
+        fclose(vShader);
+        fclose(pShader);
+
+        return hr;
+    }
+
+    HRESULT CreateQuad()
+    {
+        HRESULT hr = S_OK;
+
+        DirectX::XMFLOAT2 vertices[] = {
+            DirectX::XMFLOAT2(-0.5f, 0.5f),
+            DirectX::XMFLOAT2(0.5f, 0.5f),
+            DirectX::XMFLOAT2(-0.5f, -0.5f),
+            DirectX::XMFLOAT2(0.5f, -0.5f),
+            DirectX::XMFLOAT2(0.0f, 0.0f), //padding
+        };
+
+        // Create vertex buffer:
+
+        CD3D11_BUFFER_DESC vDesc(
+            sizeof(vertices),
+            D3D11_BIND_VERTEX_BUFFER);
+
+        D3D11_SUBRESOURCE_DATA vData;
+        ZeroMemory(&vData, sizeof(D3D11_SUBRESOURCE_DATA));
+        vData.pSysMem = vertices;
+        vData.SysMemPitch = 0;
+        vData.SysMemSlicePitch = 0;
+
+        hr = pDevice->CreateBuffer(
+            &vDesc,
+            &vData,
+            &m_pVertexBuffer);
+
+        // Create index buffer:
+        unsigned short quadIndices[] = {0, 1, 2, 1, 3, 2};
+
+        m_indexCount = ARRAYSIZE(quadIndices);
+
+        CD3D11_BUFFER_DESC iDesc(
+            sizeof(quadIndices),
+            D3D11_BIND_INDEX_BUFFER);
+
+        D3D11_SUBRESOURCE_DATA iData;
+        ZeroMemory(&iData, sizeof(D3D11_SUBRESOURCE_DATA));
+        iData.pSysMem = quadIndices;
+        iData.SysMemPitch = 0;
+        iData.SysMemSlicePitch = 0;
+
+        hr = pDevice->CreateBuffer(
+            &iDesc,
+            &iData,
+            &m_pIndexBuffer);
+
+        return hr;
+    }
 };
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -205,22 +377,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         }
         else
         {
-            const float teal[] = {0.098f, 0.439f, 0.439f, 1.000f};
-            renderer.pContext->ClearRenderTargetView(
-                renderer.pRenderTarget,
-                teal);
-            // context->ClearDepthStencilView(
-            //     depthStencil,
-            //     D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-            //     1.0f,
-            //     0);
 
-            // Set the render target.
-            // context->OMSetRenderTargets(
-            //     1,
-            //     &renderTarget,
-            //     depthStencil);
-
+            renderer.Draw();
             renderer.pSwapChain->Present(1, 0);
         }
     }
