@@ -20,6 +20,13 @@
 
 #include "Win32Window.hpp"
 
+struct ConstantBufferStruct
+{
+    float offset[2] = {0.0f, 0.0f};
+    float scale[2] = {1.0f, 1.0f};
+} constantBufferData;
+static_assert((sizeof(ConstantBufferStruct) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
+
 class D3D11Renderer
 {
 public:
@@ -60,7 +67,9 @@ public:
     }
 
     void Draw()
-    {
+    {                
+        pContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &constantBufferData, 0, 0);
+
         const float teal[] = {0.098f, 0.439f, 0.439f, 1.000f};
         pContext->ClearRenderTargetView(
             pRenderTarget,
@@ -287,14 +296,14 @@ private:
 
         delete bytes;
 
-        // CD3D11_BUFFER_DESC cbDesc(
-        //     sizeof(ConstantBufferStruct),
-        //     D3D11_BIND_CONSTANT_BUFFER);
+        CD3D11_BUFFER_DESC cbDesc(
+            sizeof(ConstantBufferStruct),
+            D3D11_BIND_CONSTANT_BUFFER);
 
-        // hr = device->CreateBuffer(
-        //     &cbDesc,
-        //     nullptr,
-        //     m_pConstantBuffer.GetAddressOf());
+        hr = pDevice->CreateBuffer(
+            &cbDesc,
+            nullptr,
+            &m_pConstantBuffer);
 
         fclose(vShader);
         fclose(pShader);
@@ -311,7 +320,7 @@ private:
             DirectX::XMFLOAT2(0.5f, 0.5f),
             DirectX::XMFLOAT2(-0.5f, -0.5f),
             DirectX::XMFLOAT2(0.5f, -0.5f),
-            DirectX::XMFLOAT2(0.0f, 0.0f), //padding
+            DirectX::XMFLOAT2(0.0f, 0.0f), // padding
         };
 
         // Create vertex buffer:
