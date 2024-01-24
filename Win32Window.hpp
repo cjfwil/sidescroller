@@ -11,6 +11,9 @@ public:
     HWND hwnd = NULL;
     LPCSTR windowClassName = "Win32WindowClass";
 
+    UINT width = 0;
+    UINT height = 0;
+
     static LRESULT CALLBACK Win32Window::StaticWindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
     static Win32Window &GetInstance()
@@ -19,18 +22,19 @@ public:
         return (instance);
     }
 
-private:        
+private:
     Win32Window()
-    {        
+    {
         OutputDebugStringA("Creating Window.\n");
 
         HRESULT hr = CreateWin32Window();
-        if (FAILED(hr)) {
-            OutputDebugStringA("Failed to create D3D11 Window.\n");            
+        if (FAILED(hr))
+        {
+            OutputDebugStringA("Failed to create D3D11 Window.\n");
         }
     }
 
-    HRESULT CreateWin32Window(char* title = "Win32 Window")
+    HRESULT CreateWin32Window(char *title = "Win32 Window")
     {
         HRESULT hr = S_OK;
         hr = SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
@@ -87,8 +91,8 @@ private:
                              hInstance,
                              0);
 
-        if (hwnd == NULL)        
-            return HRESULT_FROM_WIN32(GetLastError());        
+        if (hwnd == NULL)
+            return HRESULT_FROM_WIN32(GetLastError());
 
         return (hr);
     }
@@ -98,6 +102,11 @@ LRESULT CALLBACK Win32Window::StaticWindowProc(HWND hWnd, UINT uMsg, WPARAM wPar
 {
     switch (uMsg)
     {
+    case WM_SYSKEYDOWN: break;
+    case WM_SIZE: {
+        Win32Window::GetInstance().width = LOWORD(lParam);
+        Win32Window::GetInstance().height = HIWORD(lParam);
+    } break;
     case WM_CLOSE:
     {
         HMENU hMenu = GetMenu(hWnd);

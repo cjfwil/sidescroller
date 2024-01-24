@@ -22,8 +22,12 @@
 
 struct ConstantBufferStruct
 {
-    float offset[2] = {0.0f, 0.0f};
-    float scale[2] = {1.0f, 1.0f};
+    float view[16] = {1, 0, 0, 0,
+                      0, 1, 0, 0,
+                      0, 0, 1, 0,
+                      0, 0, 0, 1};
+    float offset[2] = {0, 0};
+    float scale[2] = {1, 1};
 } constantBufferData;
 static_assert((sizeof(ConstantBufferStruct) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
 
@@ -67,7 +71,15 @@ public:
     }
 
     void Draw()
-    {                
+    {
+        // WHAT IS THE DIFFERENCE BETWEEN USING MAP AND UpdateSubresource ??????
+        // D3D11_MAPPED_SUBRESOURCE mappedResource;
+        // HRESULT hr = pContext->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+        // memcpy(mappedResource.pData, &constantBufferData, sizeof(ConstantBufferStruct));
+        // pContext->Unmap(m_pConstantBuffer, 0);
+
+        // constantBufferData.view[0] = ;
+
         pContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &constantBufferData, 0, 0);
 
         const float teal[] = {0.098f, 0.439f, 0.439f, 1.000f};
@@ -80,11 +92,7 @@ public:
         //     1.0f,
         //     0);
 
-        // Set the render target.
-        pContext->OMSetRenderTargets(
-            1,
-            &pRenderTarget,
-            nullptr);
+        pContext->OMSetRenderTargets(1, &pRenderTarget, nullptr);
 
         UINT stride = sizeof(DirectX::XMFLOAT2);
         UINT offset = 0;
@@ -95,11 +103,12 @@ public:
         pContext->IASetInputLayout(m_pInputLayout);
         pContext->VSSetShader(m_pVertexShader, nullptr, 0);
         pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+        pContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
         pContext->PSSetShader(m_pPixelShader, nullptr, 0);
         pContext->DrawIndexed(m_indexCount, 0, 0);
     }
 
-private:
+private:    
     HRESULT CreateDeviceResources()
     {
         HRESULT hr = S_OK;
@@ -296,6 +305,12 @@ private:
 
         delete bytes;
 
+        // CD3D11_BUFFER_DESC cbDesc(
+        //     sizeof(ConstantBufferStruct),
+        //     D3D11_BIND_CONSTANT_BUFFER,
+        //     D3D11_USAGE_DYNAMIC,
+        //     D3D11_CPU_ACCESS_WRITE);
+
         CD3D11_BUFFER_DESC cbDesc(
             sizeof(ConstantBufferStruct),
             D3D11_BIND_CONSTANT_BUFFER);
@@ -386,7 +401,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         }
         else
         {
-
+            constantBufferData.view[0] = (float)window.height / (float)window.width;
             renderer.Draw();
             renderer.pSwapChain->Present(1, 0);
         }
