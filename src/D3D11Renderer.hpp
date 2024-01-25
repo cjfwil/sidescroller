@@ -8,7 +8,7 @@
 #include <DirectXMath.h>
 #include <stdio.h>
 
-struct ConstantBufferStruct
+__declspec(align(16)) struct ConstantBufferStruct
 {
     float view[16] = {1, 0, 0, 0,
                       0, 1, 0, 0,
@@ -16,6 +16,7 @@ struct ConstantBufferStruct
                       0, 0, 0, 1};
     float offset[2] = {0, 0};
     float scale[2] = {1, 1};
+    float rot;
 } constantBufferData;
 static_assert((sizeof(ConstantBufferStruct) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
 
@@ -58,29 +59,14 @@ public:
             OutputDebugStringA("Failed to creat D3D11 Device Resources\n");
     }
 
-    void Draw()
-    {
-        // WHAT IS THE DIFFERENCE BETWEEN USING MAP AND UpdateSubresource HERE??????
-        // D3D11_MAPPED_SUBRESOURCE mappedResource;
-        // HRESULT hr = pContext->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-        // memcpy(mappedResource.pData, &constantBufferData, sizeof(ConstantBufferStruct));
-        // pContext->Unmap(m_pConstantBuffer, 0);
-
-        // constantBufferData.view[0] = ;
+    void DrawRect(float x, float y, float w, float h, float theta=0.0f) {
+        constantBufferData.offset[0] = x;
+        constantBufferData.offset[1] = y;
+        constantBufferData.scale[0] = w;
+        constantBufferData.scale[1] = h;
+        constantBufferData.rot = theta;
 
         pContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &constantBufferData, 0, 0);
-
-        const float teal[] = {0.098f, 0.439f, 0.439f, 1.000f};
-        pContext->ClearRenderTargetView(
-            pRenderTarget,
-            teal);
-        // context->ClearDepthStencilView(
-        //     depthStencil,
-        //     D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-        //     1.0f,
-        //     0);
-
-        pContext->OMSetRenderTargets(1, &pRenderTarget, nullptr);
 
         UINT stride = sizeof(DirectX::XMFLOAT2);
         UINT offset = 0;
@@ -94,6 +80,49 @@ public:
         pContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
         pContext->PSSetShader(m_pPixelShader, nullptr, 0);
         pContext->DrawIndexed(m_indexCount, 0, 0);
+
+        constantBufferData.offset[0] = 0.0f;
+        constantBufferData.offset[1] = 0.0f;
+        constantBufferData.scale[0] = 1.0f;
+        constantBufferData.scale[1] = 1.0f;
+    }
+
+    void StartDraw(float r=0.098f, float g=0.439f, float b=0.439f)
+    {
+        // WHAT IS THE DIFFERENCE BETWEEN USING MAP AND UpdateSubresource HERE??????
+        // D3D11_MAPPED_SUBRESOURCE mappedResource;
+        // HRESULT hr = pContext->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+        // memcpy(mappedResource.pData, &constantBufferData, sizeof(ConstantBufferStruct));
+        // pContext->Unmap(m_pConstantBuffer, 0);
+
+        // constantBufferData.view[0] = ;
+
+        
+
+        const float backColour[] = {r, g, b, 1.000f};
+        pContext->ClearRenderTargetView(
+            pRenderTarget,
+            backColour);
+        // context->ClearDepthStencilView(
+        //     depthStencil,
+        //     D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+        //     1.0f,
+        //     0);
+
+        pContext->OMSetRenderTargets(1, &pRenderTarget, nullptr);
+
+        // UINT stride = sizeof(DirectX::XMFLOAT2);
+        // UINT offset = 0;
+
+        // pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+        // pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+        // pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        // pContext->IASetInputLayout(m_pInputLayout);
+        // pContext->VSSetShader(m_pVertexShader, nullptr, 0);
+        // pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+        // pContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+        // pContext->PSSetShader(m_pPixelShader, nullptr, 0);
+        // pContext->DrawIndexed(m_indexCount, 0, 0);
     }
 
 private:

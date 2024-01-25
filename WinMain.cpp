@@ -178,9 +178,11 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
     hr = pXAudio2->CreateSourceVoice(&pSourceVoice, (WAVEFORMATEX*)&wfx);
 
-    hr = pSourceVoice->SubmitSourceBuffer(&buffer);
+    // hr = pSourceVoice->SubmitSourceBuffer(&buffer);
 
-    hr = pSourceVoice->Start(0);
+    // hr = pSourceVoice->Start(0);
+
+    unsigned int frameCount = 0;
 
     bool quit = false;
     while (!quit)
@@ -198,6 +200,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         }
         else
         {
+            //play sound test only
             if (GetAsyncKeyState('W') & 0x8000) {
                 pSourceVoice->Stop(0);
                 pSourceVoice->FlushSourceBuffers();
@@ -205,8 +208,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 pSourceVoice->Start(0);
             }
             constantBufferData.view[0] = (float)window.height / (float)window.width;
-            renderer.Draw();
+            renderer.StartDraw(0.255f, 0.255f, 0.255f);
+            renderer.DrawRect(0.5f, 0.5f, 0.25f, 0.5f, 3.14159f/6);
+            renderer.DrawRect(-0.5f, -0.5f, 0.25f, 0.25f, frameCount/60.0f);
             renderer.pSwapChain->Present(1, 0);
+
+            frameCount++;
         }
     }
     return (0);
