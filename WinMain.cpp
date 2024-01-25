@@ -135,7 +135,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     WAVEFORMATEXTENSIBLE wfx = {0};
     XAUDIO2_BUFFER buffer = {0};
 
-    TCHAR *strFileName = __TEXT("song.wav");
+    TCHAR *strFileName = __TEXT("bloop.wav");
     // Open the file
     HANDLE hFile = CreateFile(
         strFileName,
@@ -194,9 +194,16 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             if (msg.message == WM_QUIT)
                 quit = true;
+            
         }
         else
         {
+            if (GetAsyncKeyState('W') & 0x8000) {
+                pSourceVoice->Stop(0);
+                pSourceVoice->FlushSourceBuffers();
+                pSourceVoice->SubmitSourceBuffer(&buffer);
+                pSourceVoice->Start(0);
+            }
             constantBufferData.view[0] = (float)window.height / (float)window.width;
             renderer.Draw();
             renderer.pSwapChain->Present(1, 0);
