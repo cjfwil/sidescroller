@@ -26,6 +26,9 @@
 #include "src/Win32Window.hpp"
 #include "src/D3D11Renderer.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "src/stb_image.h"
+
 //// XAUDIO HERE
 
 #define fourccRIFF 'FFIR'
@@ -108,6 +111,40 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     D3D11Renderer renderer = D3D11Renderer(window.hwnd);
 
     HRESULT hr = S_OK;
+
+    //load texture (bitmap font)
+    int texWidth, texHeight, n;
+    int forcedN = 4;
+    //stbi_set_flip_vertically_on_load(1);
+    unsigned char* clrData = stbi_load("assets/bitmap_font.png", &texWidth, &texHeight, &n, forcedN);
+
+    //create texture d3d11
+
+    D3D11_TEXTURE2D_DESC texDesc = {};
+    texDesc.Width = texWidth;
+    texDesc.Height = texHeight;
+    texDesc.MipLevels = 0;
+    texDesc.ArraySize = 1;
+    texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    texDesc.SampleDesc.Count = 1;
+    texDesc.SampleDesc.Quality = 0;
+    texDesc.Usage = D3D11_USAGE_DEFAULT;
+    texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+    texDesc.CPUAccessFlags = 0;
+    texDesc.MiscFlags = 0;
+
+    D3D11_SUBRESOURCE_DATA sd = {};
+    sd.pSysMem = (void *)clrData;
+    sd.SysMemPitch = texWidth * sizeof(unsigned int);
+
+    ID3D11Texture2D *bitmapFontTexture;
+    hr = renderer.pDevice->CreateTexture2D(&texDesc, nullptr, &bitmapFontTexture);
+    if (FAILED(hr)) {
+        OutputDebugStringA("Failed to create texture 2d\n");
+    }
+
+    renderer.pContext->UpdateSubresource(bitmapFontTexture, 0, nullptr, clrData, texWidth * forcedN, 0);
+    stbi_image_free(clrData);
 
     // XAUDIO2
 
@@ -245,16 +282,15 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             ballY += trajY / 60;
 
             bool hit = false;
-            bool goal = false;
-            if (fabs(ballX - x1) <= (paddleWidth/2 + ballW/2) &&
-                fabs(ballY - y1) <= (paddleHeight/2 + ballH/2) && trajX < 0)
+            if (fabs(ballX - x1) <= (paddleWidth / 2 + ballW / 2) &&
+                fabs(ballY - y1) <= (paddleHeight / 2 + ballH / 2) && trajX < 0)
             {
                 // hit left paddle
                 trajX *= -1;
                 hit = true;
             }
-            else if (fabs(ballX - x2) <= (paddleWidth/2 + ballW/2) &&
-                     fabs(ballY - y2) <= (paddleHeight/2 + ballH/2) && trajX > 0)
+            else if (fabs(ballX - x2) <= (paddleWidth / 2 + ballW / 2) &&
+                     fabs(ballY - y2) <= (paddleHeight / 2 + ballH / 2) && trajX > 0)
             {
                 // hit right paddle
                 trajX *= -1;
@@ -262,12 +298,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
             else if (ballX < -1.0f || ballX > 1.0f)
             {
-                if (ballX > 1.0f) score1++;
-                if (ballX < -1.0f) score2++;
+                if (ballX > 1.0f)
+                    score1++;
+                if (ballX < -1.0f)
+                    score2++;
                 trajX *= -1;
                 trajY *= -1;
                 ballX = 0.0f;
-                ballY = (trajY < 0) ? 1.0f : -1.0f;                
+                ballY = (trajY < 0) ? 1.0f : -1.0f;
             }
 
             if (ballY > 1.0f || ballY < -1.0f)
@@ -276,14 +314,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 hit = true;
             }
 
-            if (hit) {
+            if (hit)
+            {
                 pSourceVoice->Stop(0);
                 pSourceVoice->FlushSourceBuffers();
                 pSourceVoice->SubmitSourceBuffer(&buffer);
                 pSourceVoice->Start(0);
-            }
-            if (goal) {
-                //play goal sound
             }
 
             // draw game
@@ -298,12 +334,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 renderer.DrawRect(0.0f, i / 15.0f - 1.0f, 0.01f, 0.035f);
             }
 
-            for (int i = 0; i < score1; ++i) {
-                renderer.DrawRect(0.0f-0.02f, i/(float)score1, 0.01f, 1.0f/(2*score1));
+            for (int i = 0; i < score1; ++i)
+            {
+                renderer.DrawRect(0.0f - 0.02f, i / (float)score1, 0.01f, 1.0f / (2 * score1));
             }
 
-            for (int i = 0; i < score2; ++i) {
-                renderer.DrawRect(0.0f+0.02f, -i/(float)score2, 0.01f, 1.0f/(2*score2));
+            for (int i = 0; i < score2; ++i)
+            {
+                renderer.DrawRect(0.0f + 0.02f, -i / (float)score2, 0.01f, 1.0f / (2 * score2));
             }
 
             renderer.pSwapChain->Present(1, 0);
