@@ -121,21 +121,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
     // load sound
 
-    // WAVEFORMATEX wfx = {};
-    // wfx.wFormatTag = WAVE_FORMAT_PCM;
-    // wfx.nChannels = 1; // 1: mono, 2: stereo
-    // wfx.nSamplesPerSec = 44100; //hz
-    // wfx.nAvgBytesPerSec = 1024; //todo: calculate properly
-    // wfx.wBitsPerSample = 8; // 8 or 16 for PCM, 32 for IEEE float
-    // wfx.nBlockAlign = (wfx.nChannels*wfx.wBitsPerSample)/8;
-    // wfx.cbSize = 0; //0 for PCM format
-
-    // XAUDIO2_BUFFER buffer;
-
     WAVEFORMATEXTENSIBLE wfx = {0};
     XAUDIO2_BUFFER buffer = {0};
 
-    TCHAR *strFileName = __TEXT("bloop.wav");
+    TCHAR *strFileName = __TEXT("assets/bloop.wav");
     // Open the file
     HANDLE hFile = CreateFile(
         strFileName,
@@ -176,7 +165,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     // start xaudio
     IXAudio2SourceVoice *pSourceVoice;
 
-    hr = pXAudio2->CreateSourceVoice(&pSourceVoice, (WAVEFORMATEX*)&wfx);
+    hr = pXAudio2->CreateSourceVoice(&pSourceVoice, (WAVEFORMATEX *)&wfx);
 
     // hr = pSourceVoice->SubmitSourceBuffer(&buffer);
 
@@ -196,21 +185,114 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             if (msg.message == WM_QUIT)
                 quit = true;
-            
         }
         else
         {
-            //play sound test only
-            if (GetAsyncKeyState('W') & 0x8000) {
+            // play sound test only
+            if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+            {
                 pSourceVoice->Stop(0);
                 pSourceVoice->FlushSourceBuffers();
                 pSourceVoice->SubmitSourceBuffer(&buffer);
                 pSourceVoice->Start(0);
             }
+
+            // game code
+            float x1 = -1.0f;
+            float x2 = 1.0f;
+            static float y1 = 0.0f;
+            static float y2 = 0.0f;
+            float paddleWidth = 0.025f;
+            float paddleHeight = 0.1f;
+            if (GetAsyncKeyState('W') & 0x8000)
+            {
+                y1 += 1.0f / 60;
+                if (y1 > 1.0f)
+                    y1 = 1;
+            }
+            if (GetAsyncKeyState('S') & 0x8000)
+            {
+                y1 -= 1.0f / 60;
+                if (y1 < -1.0f)
+                    y1 = -1;
+            }
+
+            if (GetAsyncKeyState(VK_UP) & 0x8000)
+            {
+                y2 += 1.0f / 60;
+                if (y2 > 1.0f)
+                    y2 = 1;
+            }
+            if (GetAsyncKeyState(VK_DOWN) & 0x8000)
+            {
+                y2 -= 1.0f / 60;
+                if (y2 < -1.0f)
+                    y2 = -1;
+            }
+
+            static float ballX = 0;
+            static float ballY = 1.0f;
+            float ballW = 0.025f;
+            float ballH = ballW;
+
+            static float trajX = 1.0f / 1.414f;
+            static float trajY = -1.0f / 1.414f;
+
+            ballX += trajX / 60;
+            ballY += trajY / 60;
+
+            bool hit = false;
+            bool goal = false;
+            if (fabs(ballX - x1) <= (paddleWidth/2 + ballW/2) &&
+                fabs(ballY - y1) <= (paddleHeight/2 + ballH/2) && trajX < 0)
+            {
+                // hit left paddle
+                trajX *= -1;
+                hit = true;
+            }
+            else if (fabs(ballX - x2) <= (paddleWidth/2 + ballW/2) &&
+                     fabs(ballY - y2) <= (paddleHeight/2 + ballH/2) && trajX > 0)
+            {
+                // hit right paddle
+                trajX *= -1;
+                hit = true;
+            }
+            else if (ballX < -1.0f || ballX > 1.0f)
+            {
+                trajX *= -1;
+                trajY *= -1;
+                ballX = 0.0f;
+                ballY = (trajY < 0) ? 1.0f : -1.0f;
+            }
+
+            if (ballY > 1.0f || ballY < -1.0f)
+            {
+                trajY *= -1;
+                hit = true;
+            }
+
+            if (hit) {
+                pSourceVoice->Stop(0);
+                pSourceVoice->FlushSourceBuffers();
+                pSourceVoice->SubmitSourceBuffer(&buffer);
+                pSourceVoice->Start(0);
+            }
+            if (goal) {
+                //play goal sound
+            }
+
+            // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
             renderer.StartDraw(0.255f, 0.255f, 0.255f);
-            renderer.DrawRect(0.5f, 0.5f, 0.25f, 0.5f, 3.14159f/6);
-            renderer.DrawRect(-0.5f, -0.5f, 0.25f, 0.25f, frameCount/60.0f);
+            renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
+            renderer.DrawRect(x2, y2, paddleWidth, paddleHeight);
+            renderer.DrawRect(ballX, ballY, ballW, ballH);
+
+            for (int i = 0; i <= 30; ++i)
+            {
+                renderer.DrawRect(0.0f, i / 15.0f - 1.0f, 0.01f, 0.035f);
+            }
+
             renderer.pSwapChain->Present(1, 0);
 
             frameCount++;

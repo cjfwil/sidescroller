@@ -83,7 +83,7 @@ private:
         int y = CW_USEDEFAULT;
         hwnd = CreateWindowA(windowClassName,
                              title,
-                             WS_OVERLAPPEDWINDOW,
+                             WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME ^ WS_MAXIMIZEBOX, //disables resizing
                              x, y,
                              (rc.right - rc.left), (rc.bottom - rc.top),
                              0,

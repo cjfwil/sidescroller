@@ -13,7 +13,6 @@ float4 vs_main(float2 pos: POSITION) : SV_POSITION
 
     float2x2 rotMatrix = float2x2(cos(rot), -sin(rot),
                                   sin(rot), cos(rot));
-
     pos = mul(pos, rotMatrix);
     pos += offset;
     return mul(float4(pos, 0.0f, 1.0f), view);
