@@ -230,6 +230,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     y2 = -1;
             }
 
+            static unsigned char score1 = 0;
+            static unsigned char score2 = 0;
+
             static float ballX = 0;
             static float ballY = 1.0f;
             float ballW = 0.025f;
@@ -259,10 +262,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
             else if (ballX < -1.0f || ballX > 1.0f)
             {
+                if (ballX > 1.0f) score1++;
+                if (ballX < -1.0f) score2++;
                 trajX *= -1;
                 trajY *= -1;
                 ballX = 0.0f;
-                ballY = (trajY < 0) ? 1.0f : -1.0f;
+                ballY = (trajY < 0) ? 1.0f : -1.0f;                
             }
 
             if (ballY > 1.0f || ballY < -1.0f)
@@ -291,6 +296,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             for (int i = 0; i <= 30; ++i)
             {
                 renderer.DrawRect(0.0f, i / 15.0f - 1.0f, 0.01f, 0.035f);
+            }
+
+            for (int i = 0; i < score1; ++i) {
+                renderer.DrawRect(0.0f-0.02f, i/(float)score1, 0.01f, 1.0f/(2*score1));
+            }
+
+            for (int i = 0; i < score2; ++i) {
+                renderer.DrawRect(0.0f+0.02f, -i/(float)score2, 0.01f, 1.0f/(2*score2));
             }
 
             renderer.pSwapChain->Present(1, 0);
