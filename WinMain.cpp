@@ -112,13 +112,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
     HRESULT hr = S_OK;
 
-    //load texture (bitmap font)
+    // load texture (bitmap font)
     int texWidth, texHeight, n;
     int forcedN = 4;
-    //stbi_set_flip_vertically_on_load(1);
-    unsigned char* clrData = stbi_load("assets/bitmap_font.png", &texWidth, &texHeight, &n, forcedN);
+    stbi_set_flip_vertically_on_load(1);
+    unsigned char *clrData = stbi_load("assets/bitmap_font.png", &texWidth, &texHeight, &n, forcedN);
 
-    //create texture d3d11
+    // create texture d3d11
 
     D3D11_TEXTURE2D_DESC texDesc = {};
     texDesc.Width = texWidth;
@@ -138,10 +138,37 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     sd.SysMemPitch = texWidth * sizeof(unsigned int);
 
     ID3D11Texture2D *bitmapFontTexture;
+    ID3D11SamplerState *samplerState;
     hr = renderer.pDevice->CreateTexture2D(&texDesc, nullptr, &bitmapFontTexture);
-    if (FAILED(hr)) {
+    if (FAILED(hr))
+    {
         OutputDebugStringA("Failed to create texture 2d\n");
     }
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = texDesc.Format;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MostDetailedMip = 0;
+    srvDesc.Texture2D.MipLevels = UINT_MAX;
+
+    ID3D11ShaderResourceView *textureShaderResourceView;
+    hr = renderer.pDevice->CreateShaderResourceView(bitmapFontTexture, &srvDesc, &textureShaderResourceView);
+
+    D3D11_SAMPLER_DESC samplerDesc = {};
+    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    samplerDesc.MipLODBias = 0.0f;
+    samplerDesc.MinLOD = 0.0f;
+    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+    hr = renderer.pDevice->CreateSamplerState(&samplerDesc, &samplerState);
+
+    renderer.pContext->PSSetShader(renderer.m_pPixelShader[1], nullptr, 0);
+    renderer.pContext->PSSetShaderResources(0u, 1u, &textureShaderResourceView);
+    renderer.pContext->PSSetSamplers(0, 1, &samplerState);
 
     renderer.pContext->UpdateSubresource(bitmapFontTexture, 0, nullptr, clrData, texWidth * forcedN, 0);
     stbi_image_free(clrData);
@@ -343,6 +370,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 renderer.DrawRect(0.0f + 0.02f, -i / (float)score2, 0.01f, 1.0f / (2 * score2));
             }
+
+            renderer.DrawFontRect(0, 0);
 
             renderer.pSwapChain->Present(1, 0);
 

@@ -32,6 +32,7 @@ ps_input vs_main(float2 pos: POSITION, float2 uv: TEXCOORD)
 float4 ps_main(ps_input input) : SV_TARGET
 {
     float4 clr = fontTexture.Sample(samplerState, input.uv);
-    clip(clr.a < 0.1f ? -1 : 1);
+    //clip(clr.a < 0.1f ? -1 : 1);
+    //clr = float4(0.0f, 1.0f, 1.0f, 1.0f);
     return (clr);
 }

@@ -31,7 +31,7 @@ public:
     ID3D11DeviceContext *pContext;
     IDXGISwapChain *pSwapChain;
     ID3D11Texture2D *pBackBuffer;
-    ID3D11RenderTargetView *pRenderTarget;
+    ID3D11RenderTargetView *pRenderTarget;    
 
     D3D11Renderer(HWND hwnd)
     {
@@ -42,7 +42,7 @@ public:
             hr = CreateShaders("shaders/VShader.cso", "shaders/PShader.cso");
             if (SUCCEEDED(hr))
             {
-                //hr = CreateShaders("shaders/VShaderFont.cso", "shaders/PShaderFont.cso");
+                hr = CreateShaders("shaders/VShaderFont.cso", "shaders/PShaderFont.cso");
                 hr = CreateQuad();
                 if (SUCCEEDED(hr))
                 {
@@ -60,7 +60,7 @@ public:
             OutputDebugStringA("Failed to creat D3D11 Device Resources\n");
     }
 
-    void DrawRect(float x, float y, float w, float h, float theta = 0.0f)
+    void DrawRect(float x, float y, float w=1.0f, float h=1.0f, float theta = 0.0f)
     {
         constantBufferData.offset[0] = x;
         constantBufferData.offset[1] = y;
@@ -70,7 +70,7 @@ public:
 
         pContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &constantBufferData, 0, 0);
 
-        UINT stride = sizeof(DirectX::XMFLOAT2);
+        UINT stride = sizeof(local_vertex);
         UINT offset = 0;
 
         pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
@@ -80,7 +80,7 @@ public:
         pContext->VSSetShader(m_pVertexShader[0], nullptr, 0);
         pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
         pContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-        pContext->PSSetShader(m_pPixelShader[0], nullptr, 0);
+        pContext->PSSetShader(m_pPixelShader[0], nullptr, 0);    
         pContext->DrawIndexed(m_indexCount, 0, 0);
 
         constantBufferData.offset[0] = 0.0f;
@@ -89,34 +89,34 @@ public:
         constantBufferData.scale[1] = 1.0f;
     }
 
-    // void DrawFontRect(float x, float y, float w, float h, float theta = 0.0f)
-    // {
-    //     constantBufferData.offset[0] = x;
-    //     constantBufferData.offset[1] = y;
-    //     constantBufferData.scale[0] = w;
-    //     constantBufferData.scale[1] = h;
-    //     constantBufferData.rot = theta;
+    void DrawFontRect(float x, float y, float w=1.0f, float h=1.0f, float theta = 0.0f)
+    {
+        constantBufferData.offset[0] = x;
+        constantBufferData.offset[1] = y;
+        constantBufferData.scale[0] = w;
+        constantBufferData.scale[1] = h;
+        constantBufferData.rot = theta;
 
-    //     pContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &constantBufferData, 0, 0);
+        pContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &constantBufferData, 0, 0);
 
-    //     UINT stride = sizeof(local_vertex);
-    //     UINT offset = 0;
+        UINT stride = sizeof(local_vertex);
+        UINT offset = 0;
 
-    //     pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
-    //     pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
-    //     pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    //     pContext->IASetInputLayout(m_pInputLayout);
-    //     pContext->VSSetShader(m_pVertexShader[1], nullptr, 0);
-    //     pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-    //     pContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-    //     pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
-    //     pContext->DrawIndexed(m_indexCount, 0, 0);
+        pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+        pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        pContext->IASetInputLayout(m_pInputLayout);
+        pContext->VSSetShader(m_pVertexShader[1], nullptr, 0);
+        pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+        pContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+        pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
+        pContext->DrawIndexed(m_indexCount, 0, 0);
 
-    //     constantBufferData.offset[0] = 0.0f;
-    //     constantBufferData.offset[1] = 0.0f;
-    //     constantBufferData.scale[0] = 1.0f;
-    //     constantBufferData.scale[1] = 1.0f;
-    // }
+        constantBufferData.offset[0] = 0.0f;
+        constantBufferData.offset[1] = 0.0f;
+        constantBufferData.scale[0] = 1.0f;
+        constantBufferData.scale[1] = 1.0f;
+    }
 
     void StartDraw(float r = 0.098f, float g = 0.439f, float b = 0.439f)
     {
@@ -297,7 +297,7 @@ private:
     ID3D11VertexShader *m_pVertexShader[2] = {};
     ID3D11InputLayout *m_pInputLayout;
     ID3D11InputLayout *m_pInputLayoutExtended;
-    ID3D11PixelShader *m_pPixelShader[2] = {};
+    public: ID3D11PixelShader *m_pPixelShader[2] = {};
     ID3D11Buffer *m_pConstantBuffer;
 
     HRESULT CreateShaders(char *vs_path, char *ps_path)
@@ -332,8 +332,8 @@ private:
                 {"POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,
                  0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
 
-                // {"TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT,
-                //  0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+                {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,
+                 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0},
             };
 
         hr = pDevice->CreateInputLayout(
@@ -385,28 +385,26 @@ private:
     struct local_vertex
     {
         DirectX::XMFLOAT2 pos;
-        // DirectX::XMFLOAT2 uv;
+        DirectX::XMFLOAT2 uv;
     };
 
     HRESULT CreateQuad()
     {
         HRESULT hr = S_OK;
 
-        // local_vertex vertices[] = {
-        //     {DirectX::XMFLOAT2(-0.5f, 0.5f), DirectX::XMFLOAT2(0, 1)},
-        //     {DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(1, 1)},
-        //     {DirectX::XMFLOAT2(-0.5f, -0.5f), DirectX::XMFLOAT2(0, 0)},
-        //     {DirectX::XMFLOAT2(0.5f, -0.5f), DirectX::XMFLOAT2(1, 0)},
-        //     {DirectX::XMFLOAT2(0.0f, 0.0f), DirectX::XMFLOAT2(0, 0)} // padding
-        // };
-
-        DirectX::XMFLOAT2 vertices[] = {
-            DirectX::XMFLOAT2(-0.5f, 0.5f),
-            DirectX::XMFLOAT2(0.5f, 0.5f),
-            DirectX::XMFLOAT2(-0.5f, -0.5f),
-            DirectX::XMFLOAT2(0.5f, -0.5f), 
-            DirectX::XMFLOAT2(0.0f, 0.0f), // padding
+        local_vertex vertices[] = {
+            {DirectX::XMFLOAT2(-0.5f, 0.5f), DirectX::XMFLOAT2(0, 1)},
+            {DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(1, 1)},
+            {DirectX::XMFLOAT2(-0.5f, -0.5f), DirectX::XMFLOAT2(0, 0)},
+            {DirectX::XMFLOAT2(0.5f, -0.5f), DirectX::XMFLOAT2(1, 0)},        
         };
+
+        // DirectX::XMFLOAT2 vertices[] = {
+        //     DirectX::XMFLOAT2(-0.5f, 0.5f),
+        //     DirectX::XMFLOAT2(0.5f, 0.5f),
+        //     DirectX::XMFLOAT2(-0.5f, -0.5f),
+        //     DirectX::XMFLOAT2(0.5f, -0.5f),             
+        // };
 
         // Create vertex buffer:
 
