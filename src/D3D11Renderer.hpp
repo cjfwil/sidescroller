@@ -103,7 +103,7 @@ public:
         constantBufferData.scale[1] = 1.0f;
     }
 
-    void DrawFontRect(float x, float y, unsigned int number, float w=1.0f, float h=1.0f, float theta = 0.0f)
+    void DrawFontRect(float x, float y, unsigned char number, float w=1.0f, float h=1.0f, float theta = 0.0f)
     {
         //TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
         fontConstantBufferData.offset[0] = x;

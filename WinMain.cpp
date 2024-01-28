@@ -387,8 +387,17 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 renderer.DrawRect(0.0f, i / 15.0f - 1.0f, 0.01f, 0.035f);
             }
 
-            renderer.DrawFontRect(-0.5f, 0.66667f, score1, 0.3f * 4.0f / 6.0f, 0.3f);
-            renderer.DrawFontRect(0.5f, 0.66667f, score2, 0.3f * 4.0f / 6.0f, 0.3f);
+            float chScale = 0.3f;
+            float chW = chScale * 4.0f / 6.0f;
+            float chH = chScale;
+            
+            renderer.DrawFontRect(-0.5f, 0.66667f, score1 % 10, chW, chH);
+            renderer.DrawFontRect(-0.5f - chW, 0.66667f, (score1 / 10) % 10, chW, chH);
+            renderer.DrawFontRect(-0.5f - 2 * chW, 0.66667f, (score1 / 100) % 1000, chW, chH);
+
+            renderer.DrawFontRect(0.5f + 2 * chW, 0.66667f, score2 % 10, 0.3f * 4.0f / 6.0f, 0.3f);
+            renderer.DrawFontRect(0.5f + chW, 0.66667f, (score2 / 10) % 10, 0.3f * 4.0f / 6.0f, 0.3f);
+            renderer.DrawFontRect(0.5f, 0.66667f, (score2 / 100) % 10, 0.3f * 4.0f / 6.0f, 0.3f);
 
             renderer.pSwapChain->Present(1, 0);
 
