@@ -3,6 +3,8 @@ cbuffer view_info : register(b0)
     matrix view;
     float2 offset;
     float2 scale;
+    float2 uvOffset;
+    float2 uvScale;
     float rot;    
 }
 
@@ -25,14 +27,13 @@ ps_input vs_main(float2 pos: POSITION, float2 uv: TEXCOORD)
 
     ps_input output;
     output.pos = mul(float4(pos, 0.0f, 1.0f), view);
-    output.uv = uv;
+    output.uv = uv*uvScale + uvOffset;
     return output;
 }
 
 float4 ps_main(ps_input input) : SV_TARGET
 {
     float4 clr = fontTexture.Sample(samplerState, input.uv);
-    //clip(clr.a < 0.1f ? -1 : 1);
-    //clr = float4(0.0f, 1.0f, 1.0f, 1.0f);
+    clip(clr.a == 0 ? -1 : 1);    
     return (clr);
 }

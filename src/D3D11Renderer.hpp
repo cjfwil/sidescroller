@@ -20,6 +20,20 @@ __declspec(align(16)) struct ConstantBufferStruct
 } constantBufferData;
 static_assert((sizeof(ConstantBufferStruct) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
 
+__declspec(align(16)) struct FontConstantBufferStruct
+{
+    float view[16] = {1, 0, 0, 0,
+                      0, 1, 0, 0,
+                      0, 0, 1, 0,
+                      0, 0, 0, 1};
+    float offset[2] = {0, 0};
+    float scale[2] = {1, 1};
+    float uvOffset[2] = {0, 0};
+    float uvScale[2] = {1, 1};
+    float rot;
+} fontConstantBufferData;
+static_assert((sizeof(ConstantBufferStruct) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
+
 class D3D11Renderer
 {
 public:
@@ -89,15 +103,20 @@ public:
         constantBufferData.scale[1] = 1.0f;
     }
 
-    void DrawFontRect(float x, float y, float w=1.0f, float h=1.0f, float theta = 0.0f)
+    void DrawFontRect(float x, float y, unsigned int number, float w=1.0f, float h=1.0f, float theta = 0.0f)
     {
-        constantBufferData.offset[0] = x;
-        constantBufferData.offset[1] = y;
-        constantBufferData.scale[0] = w;
-        constantBufferData.scale[1] = h;
-        constantBufferData.rot = theta;
+        //TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
+        fontConstantBufferData.offset[0] = x;
+        fontConstantBufferData.offset[1] = y;        
+        fontConstantBufferData.uvScale[0] = 1/10.0f;       
+        fontConstantBufferData.uvScale[1] = 1/4.0f;   
+        fontConstantBufferData.uvOffset[0] = number/10.0f;
+        fontConstantBufferData.uvOffset[1] = 3/4.0f;
+        fontConstantBufferData.scale[0] = w;
+        fontConstantBufferData.scale[1] = h;
+        fontConstantBufferData.rot = theta;
 
-        pContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &constantBufferData, 0, 0);
+        pContext->UpdateSubresource(m_pFontRenderConstantBuffer, 0, nullptr, &fontConstantBufferData, 0, 0);
 
         UINT stride = sizeof(local_vertex);
         UINT offset = 0;
@@ -107,15 +126,15 @@ public:
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         pContext->IASetInputLayout(m_pInputLayout);
         pContext->VSSetShader(m_pVertexShader[1], nullptr, 0);
-        pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-        pContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+        pContext->VSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
+        pContext->PSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
         pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
         pContext->DrawIndexed(m_indexCount, 0, 0);
 
-        constantBufferData.offset[0] = 0.0f;
-        constantBufferData.offset[1] = 0.0f;
-        constantBufferData.scale[0] = 1.0f;
-        constantBufferData.scale[1] = 1.0f;
+        fontConstantBufferData.offset[0] = 0.0f;
+        fontConstantBufferData.offset[1] = 0.0f;
+        fontConstantBufferData.scale[0] = 1.0f;
+        fontConstantBufferData.scale[1] = 1.0f;
     }
 
     void StartDraw(float r = 0.098f, float g = 0.439f, float b = 0.439f)
@@ -299,6 +318,7 @@ private:
     ID3D11InputLayout *m_pInputLayoutExtended;
     public: ID3D11PixelShader *m_pPixelShader[2] = {};
     ID3D11Buffer *m_pConstantBuffer;
+    ID3D11Buffer *m_pFontRenderConstantBuffer;
 
     HRESULT CreateShaders(char *vs_path, char *ps_path)
     {
@@ -360,21 +380,6 @@ private:
             &(m_pPixelShader[ps_index]));
 
         delete bytes;
-
-        // CD3D11_BUFFER_DESC cbDesc(
-        //     sizeof(ConstantBufferStruct),
-        //     D3D11_BIND_CONSTANT_BUFFER,
-        //     D3D11_USAGE_DYNAMIC,
-        //     D3D11_CPU_ACCESS_WRITE);
-
-        CD3D11_BUFFER_DESC cbDesc(
-            sizeof(ConstantBufferStruct),
-            D3D11_BIND_CONSTANT_BUFFER);
-
-        hr = pDevice->CreateBuffer(
-            &cbDesc,
-            nullptr,
-            &m_pConstantBuffer);
 
         fclose(vShader);
         fclose(pShader);

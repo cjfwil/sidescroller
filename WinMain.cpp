@@ -173,6 +173,31 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     renderer.pContext->UpdateSubresource(bitmapFontTexture, 0, nullptr, clrData, texWidth * forcedN, 0);
     stbi_image_free(clrData);
 
+    // constant buffers
+    //  CD3D11_BUFFER_DESC cbDesc(
+    //      sizeof(ConstantBufferStruct),
+    //      D3D11_BIND_CONSTANT_BUFFER,
+    //      D3D11_USAGE_DYNAMIC,
+    //      D3D11_CPU_ACCESS_WRITE);
+
+    CD3D11_BUFFER_DESC cbDesc(
+        sizeof(ConstantBufferStruct),
+        D3D11_BIND_CONSTANT_BUFFER);
+
+    hr = renderer.pDevice->CreateBuffer(
+        &cbDesc,
+        nullptr,
+        &renderer.m_pConstantBuffer);
+
+    CD3D11_BUFFER_DESC cbFontDesc(
+        sizeof(FontConstantBufferStruct),
+        D3D11_BIND_CONSTANT_BUFFER);
+
+    hr = renderer.pDevice->CreateBuffer(
+        &cbFontDesc,
+        nullptr,
+        &renderer.m_pFontRenderConstantBuffer);
+
     // XAUDIO2
 
     hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -351,6 +376,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
+            fontConstantBufferData.view[0] = (float)window.height / (float)window.width;
             renderer.StartDraw(0.255f, 0.255f, 0.255f);
             renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
             renderer.DrawRect(x2, y2, paddleWidth, paddleHeight);
@@ -361,17 +387,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 renderer.DrawRect(0.0f, i / 15.0f - 1.0f, 0.01f, 0.035f);
             }
 
-            for (int i = 0; i < score1; ++i)
-            {
-                renderer.DrawRect(0.0f - 0.02f, i / (float)score1, 0.01f, 1.0f / (2 * score1));
-            }
-
-            for (int i = 0; i < score2; ++i)
-            {
-                renderer.DrawRect(0.0f + 0.02f, -i / (float)score2, 0.01f, 1.0f / (2 * score2));
-            }
-
-            renderer.DrawFontRect(0, 0);
+            renderer.DrawFontRect(-0.5f, 0.66667f, score1, 0.3f * 4.0f / 6.0f, 0.3f);
+            renderer.DrawFontRect(0.5f, 0.66667f, score2, 0.3f * 4.0f / 6.0f, 0.3f);
 
             renderer.pSwapChain->Present(1, 0);
 
