@@ -8,6 +8,9 @@
 #include <DirectXMath.h>
 #include <stdio.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "src/stb_image.h"
+
 __declspec(align(16)) struct ConstantBufferStruct
 {
     float view[16] = {1, 0, 0, 0,
@@ -45,7 +48,7 @@ public:
     ID3D11DeviceContext *pContext;
     IDXGISwapChain *pSwapChain;
     ID3D11Texture2D *pBackBuffer;
-    ID3D11RenderTargetView *pRenderTarget;    
+    ID3D11RenderTargetView *pRenderTarget;
 
     D3D11Renderer(HWND hwnd)
     {
@@ -57,6 +60,7 @@ public:
             if (SUCCEEDED(hr))
             {
                 hr = CreateShaders("shaders/VShaderFont.cso", "shaders/PShaderFont.cso");
+                hr = CreateConstantBuffers();
                 hr = CreateQuad();
                 if (SUCCEEDED(hr))
                 {
@@ -74,7 +78,7 @@ public:
             OutputDebugStringA("Failed to creat D3D11 Device Resources\n");
     }
 
-    void DrawRect(float x, float y, float w=1.0f, float h=1.0f, float theta = 0.0f)
+    void DrawRect(float x, float y, float w = 1.0f, float h = 1.0f, float theta = 0.0f)
     {
         constantBufferData.offset[0] = x;
         constantBufferData.offset[1] = y;
@@ -94,7 +98,7 @@ public:
         pContext->VSSetShader(m_pVertexShader[0], nullptr, 0);
         pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
         pContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-        pContext->PSSetShader(m_pPixelShader[0], nullptr, 0);    
+        pContext->PSSetShader(m_pPixelShader[0], nullptr, 0);
         pContext->DrawIndexed(m_indexCount, 0, 0);
 
         constantBufferData.offset[0] = 0.0f;
@@ -103,15 +107,15 @@ public:
         constantBufferData.scale[1] = 1.0f;
     }
 
-    void DrawFontRect(float x, float y, unsigned char number, float w=1.0f, float h=1.0f, float theta = 0.0f)
+    void DrawFontRect(float x, float y, unsigned char number, float w = 1.0f, float h = 1.0f, float theta = 0.0f)
     {
-        //TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
+        // TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
         fontConstantBufferData.offset[0] = x;
-        fontConstantBufferData.offset[1] = y;        
-        fontConstantBufferData.uvScale[0] = 1/10.0f;       
-        fontConstantBufferData.uvScale[1] = 1/4.0f;   
-        fontConstantBufferData.uvOffset[0] = number/10.0f;
-        fontConstantBufferData.uvOffset[1] = 3/4.0f;
+        fontConstantBufferData.offset[1] = y;
+        fontConstantBufferData.uvScale[0] = 1 / 10.0f;
+        fontConstantBufferData.uvScale[1] = 1 / 4.0f;
+        fontConstantBufferData.uvOffset[0] = number / 10.0f;
+        fontConstantBufferData.uvOffset[1] = 3 / 4.0f;
         fontConstantBufferData.scale[0] = w;
         fontConstantBufferData.scale[1] = h;
         fontConstantBufferData.rot = theta;
@@ -173,7 +177,94 @@ public:
         // pContext->DrawIndexed(m_indexCount, 0, 0);
     }
 
+    void LoadFontTexture()
+    {
+        // load texture (bitmap font)
+        int texWidth, texHeight, n;
+        int forcedN = 4;
+        stbi_set_flip_vertically_on_load(1);
+        unsigned char *clrData = stbi_load("assets/bitmap_font.png", &texWidth, &texHeight, &n, forcedN);
+
+        // create texture d3d11
+
+        D3D11_TEXTURE2D_DESC texDesc = {};
+        texDesc.Width = texWidth;
+        texDesc.Height = texHeight;
+        texDesc.MipLevels = 0;
+        texDesc.ArraySize = 1;
+        texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        texDesc.SampleDesc.Count = 1;
+        texDesc.SampleDesc.Quality = 0;
+        texDesc.Usage = D3D11_USAGE_DEFAULT;
+        texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+        texDesc.CPUAccessFlags = 0;
+        texDesc.MiscFlags = 0;
+
+        D3D11_SUBRESOURCE_DATA sd = {};
+        sd.pSysMem = (void *)clrData;
+        sd.SysMemPitch = texWidth * sizeof(unsigned int);
+
+        ID3D11Texture2D *bitmapFontTexture;
+        ID3D11SamplerState *samplerState;
+        HRESULT hr = pDevice->CreateTexture2D(&texDesc, nullptr, &bitmapFontTexture);
+        if (FAILED(hr))
+        {
+            OutputDebugStringA("Failed to create texture 2d\n");
+        }
+
+        D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+        srvDesc.Format = texDesc.Format;
+        srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        srvDesc.Texture2D.MostDetailedMip = 0;
+        srvDesc.Texture2D.MipLevels = UINT_MAX;
+
+        ID3D11ShaderResourceView *textureShaderResourceView;
+        hr = pDevice->CreateShaderResourceView(bitmapFontTexture, &srvDesc, &textureShaderResourceView);
+
+        D3D11_SAMPLER_DESC samplerDesc = {};
+        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+        samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        samplerDesc.MipLODBias = 0.0f;
+        samplerDesc.MinLOD = 0.0f;
+        samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+        hr = pDevice->CreateSamplerState(&samplerDesc, &samplerState);
+
+        pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
+        pContext->PSSetShaderResources(0u, 1u, &textureShaderResourceView);
+        pContext->PSSetSamplers(0, 1, &samplerState);
+
+        pContext->UpdateSubresource(bitmapFontTexture, 0, nullptr, clrData, texWidth * forcedN, 0);
+        stbi_image_free(clrData);
+    }
+
 private:
+    HRESULT CreateConstantBuffers()
+    {
+        HRESULT hr = S_OK;
+        CD3D11_BUFFER_DESC cbDesc(
+            sizeof(ConstantBufferStruct),
+            D3D11_BIND_CONSTANT_BUFFER);
+
+        hr = pDevice->CreateBuffer(
+            &cbDesc,
+            nullptr,
+            &m_pConstantBuffer);
+
+        CD3D11_BUFFER_DESC cbFontDesc(
+            sizeof(FontConstantBufferStruct),
+            D3D11_BIND_CONSTANT_BUFFER);
+
+        hr = pDevice->CreateBuffer(
+            &cbFontDesc,
+            nullptr,
+            &m_pFontRenderConstantBuffer);
+        return hr;
+    }
+
     HRESULT CreateDeviceResources()
     {
         HRESULT hr = S_OK;
@@ -316,7 +407,9 @@ private:
     ID3D11VertexShader *m_pVertexShader[2] = {};
     ID3D11InputLayout *m_pInputLayout;
     ID3D11InputLayout *m_pInputLayoutExtended;
-    public: ID3D11PixelShader *m_pPixelShader[2] = {};
+
+public:
+    ID3D11PixelShader *m_pPixelShader[2] = {};
     ID3D11Buffer *m_pConstantBuffer;
     ID3D11Buffer *m_pFontRenderConstantBuffer;
 
@@ -401,14 +494,14 @@ private:
             {DirectX::XMFLOAT2(-0.5f, 0.5f), DirectX::XMFLOAT2(0, 1)},
             {DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(1, 1)},
             {DirectX::XMFLOAT2(-0.5f, -0.5f), DirectX::XMFLOAT2(0, 0)},
-            {DirectX::XMFLOAT2(0.5f, -0.5f), DirectX::XMFLOAT2(1, 0)},        
+            {DirectX::XMFLOAT2(0.5f, -0.5f), DirectX::XMFLOAT2(1, 0)},
         };
 
         // DirectX::XMFLOAT2 vertices[] = {
         //     DirectX::XMFLOAT2(-0.5f, 0.5f),
         //     DirectX::XMFLOAT2(0.5f, 0.5f),
         //     DirectX::XMFLOAT2(-0.5f, -0.5f),
-        //     DirectX::XMFLOAT2(0.5f, -0.5f),             
+        //     DirectX::XMFLOAT2(0.5f, -0.5f),
         // };
 
         // Create vertex buffer:

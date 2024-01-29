@@ -25,113 +25,19 @@
 
 #include "src/XAudioRenderer.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "src/stb_image.h"
+
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
     Win32Window &window = Win32Window::GetInstance();
-    ShowWindow(window.hwnd, SW_SHOWDEFAULT);
 
     D3D11Renderer renderer = D3D11Renderer(window.hwnd);
+    renderer.LoadFontTexture();
 
-    HRESULT hr = S_OK;
-
-    // load texture (bitmap font)
-    int texWidth, texHeight, n;
-    int forcedN = 4;
-    stbi_set_flip_vertically_on_load(1);
-    unsigned char *clrData = stbi_load("assets/bitmap_font.png", &texWidth, &texHeight, &n, forcedN);
-
-    // create texture d3d11
-
-    D3D11_TEXTURE2D_DESC texDesc = {};
-    texDesc.Width = texWidth;
-    texDesc.Height = texHeight;
-    texDesc.MipLevels = 0;
-    texDesc.ArraySize = 1;
-    texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    texDesc.SampleDesc.Count = 1;
-    texDesc.SampleDesc.Quality = 0;
-    texDesc.Usage = D3D11_USAGE_DEFAULT;
-    texDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-    texDesc.CPUAccessFlags = 0;
-    texDesc.MiscFlags = 0;
-
-    D3D11_SUBRESOURCE_DATA sd = {};
-    sd.pSysMem = (void *)clrData;
-    sd.SysMemPitch = texWidth * sizeof(unsigned int);
-
-    ID3D11Texture2D *bitmapFontTexture;
-    ID3D11SamplerState *samplerState;
-    hr = renderer.pDevice->CreateTexture2D(&texDesc, nullptr, &bitmapFontTexture);
-    if (FAILED(hr))
-    {
-        OutputDebugStringA("Failed to create texture 2d\n");
-    }
-
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format = texDesc.Format;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MostDetailedMip = 0;
-    srvDesc.Texture2D.MipLevels = UINT_MAX;
-
-    ID3D11ShaderResourceView *textureShaderResourceView;
-    hr = renderer.pDevice->CreateShaderResourceView(bitmapFontTexture, &srvDesc, &textureShaderResourceView);
-
-    D3D11_SAMPLER_DESC samplerDesc = {};
-    samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
-    samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-    samplerDesc.MipLODBias = 0.0f;
-    samplerDesc.MinLOD = 0.0f;
-    samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-    hr = renderer.pDevice->CreateSamplerState(&samplerDesc, &samplerState);
-
-    renderer.pContext->PSSetShader(renderer.m_pPixelShader[1], nullptr, 0);
-    renderer.pContext->PSSetShaderResources(0u, 1u, &textureShaderResourceView);
-    renderer.pContext->PSSetSamplers(0, 1, &samplerState);
-
-    renderer.pContext->UpdateSubresource(bitmapFontTexture, 0, nullptr, clrData, texWidth * forcedN, 0);
-    stbi_image_free(clrData);
-
-    // constant buffers
-    //  CD3D11_BUFFER_DESC cbDesc(
-    //      sizeof(ConstantBufferStruct),
-    //      D3D11_BIND_CONSTANT_BUFFER,
-    //      D3D11_USAGE_DYNAMIC,
-    //      D3D11_CPU_ACCESS_WRITE);
-
-    CD3D11_BUFFER_DESC cbDesc(
-        sizeof(ConstantBufferStruct),
-        D3D11_BIND_CONSTANT_BUFFER);
-
-    hr = renderer.pDevice->CreateBuffer(
-        &cbDesc,
-        nullptr,
-        &renderer.m_pConstantBuffer);
-
-    CD3D11_BUFFER_DESC cbFontDesc(
-        sizeof(FontConstantBufferStruct),
-        D3D11_BIND_CONSTANT_BUFFER);
-
-    hr = renderer.pDevice->CreateBuffer(
-        &cbFontDesc,
-        nullptr,
-        &renderer.m_pFontRenderConstantBuffer);
-
-    // XAUDIO2
     XAudioRenderer xa = XAudioRenderer();
 
-    // start xaudio
-
-    // hr = xa.pSourceVoice->SubmitSourceBuffer(&buffer);
-
-    // hr = xa.pSourceVoice->Start(0);
-
+    ShowWindow(window.hwnd, SW_SHOWDEFAULT);
+    
     unsigned int frameCount = 0;
 
     bool quit = false;
@@ -253,17 +159,17 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 renderer.DrawRect(0.0f, i / 15.0f - 1.0f, 0.01f, 0.035f);
             }
 
-            float chScale = 0.3f;
+            float chScale = 0.2f;
             float chW = chScale * 4.0f / 6.0f;
             float chH = chScale;
-            
+                                    
             renderer.DrawFontRect(-0.5f, 0.66667f, score1 % 10, chW, chH);
             renderer.DrawFontRect(-0.5f - chW, 0.66667f, (score1 / 10) % 10, chW, chH);
             renderer.DrawFontRect(-0.5f - 2 * chW, 0.66667f, (score1 / 100) % 1000, chW, chH);
 
-            renderer.DrawFontRect(0.5f + 2 * chW, 0.66667f, score2 % 10, 0.3f * 4.0f / 6.0f, 0.3f);
-            renderer.DrawFontRect(0.5f + chW, 0.66667f, (score2 / 10) % 10, 0.3f * 4.0f / 6.0f, 0.3f);
-            renderer.DrawFontRect(0.5f, 0.66667f, (score2 / 100) % 10, 0.3f * 4.0f / 6.0f, 0.3f);
+            renderer.DrawFontRect(0.5f + 2 * chW, 0.66667f, score2 % 10, chW, chH);
+            renderer.DrawFontRect(0.5f + chW, 0.66667f, (score2 / 10) % 10, chW, chH);
+            renderer.DrawFontRect(0.5f, 0.66667f, (score2 / 100) % 10, chW, chH);
 
             renderer.pSwapChain->Present(1, 0);
 
