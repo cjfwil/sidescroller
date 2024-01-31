@@ -67,58 +67,79 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
 
             // game code
-            float x1 = -1.0f;
-            float x2 = 1.0f;
-            static float y1 = 0.0f;
-            static float y2 = 0.0f;
-            float paddleWidth = 0.025f;
-            float paddleHeight = 0.1f;
-            if (GetAsyncKeyState('W') & 0x8000)
+            static float x1 = -1.0f;
+            static float y1 = -0.8f;
+            float paddleWidth = 0.1f;
+            float paddleHeight = 0.025f;
+            float brickWidth = 0.13f;
+            float brickHeight = 0.05f;
+
+            struct brick_info
             {
-                y1 += 1.0f / 60;
-                if (y1 > 1.0f)
-                    y1 = 1;
-            }
-            if (GetAsyncKeyState('S') & 0x8000)
+                float x;
+                float y;
+                float width;
+                float height;
+                float colour[4];
+                bool alive = true;
+                ;
+            };
+
+            static brick_info bricks[14][8] = {};
+
+            static bool brickInit = false;
+            if (!brickInit)
             {
-                y1 -= 1.0f / 60;
-                if (y1 < -1.0f)
-                    y1 = -1;
+                for (int x = 0; x < 14; ++x)
+                {
+                    for (int y = 0; y < 8; ++y)
+                    {
+                        static float(colour[5])[4] = {
+                            {1, 0, 1, 1},
+                            {0.15f, 0.75f, .15f, 1},
+                            {1, 1, 0, 1},
+                            {1, 0.41f, 0, 1},
+                            {1, 0, 0, 1},
+                        };
+                        unsigned char index = (y / 2) + 1;
+
+                        brick_info b;
+                        b.x = (2 * x / 14.0f) - 1.0f;
+                        b.y = y / 16.0f;
+                        b.width = brickWidth;
+                        b.height = brickHeight;
+                        b.colour[0] = (colour[index])[0];
+                        b.colour[1] = (colour[index])[1];
+                        b.colour[2] = (colour[index])[2];
+                        b.colour[3] = (colour[index])[3];
+                        bricks[x][y] = b;
+                    }
+                }
+                brickInit = true;
             }
 
-            if (GetAsyncKeyState(VK_UP) & 0x8000)
+            if (GetAsyncKeyState('D') & 0x8000)
             {
-                y2 += 1.0f / 60;
-                if (y2 > 1.0f)
-                    y2 = 1;
+                x1 += 1.0f / 60;
+                if (x1 > 1.0f)
+                    x1 = 1;
             }
-            if (GetAsyncKeyState(VK_DOWN) & 0x8000)
+            if (GetAsyncKeyState('A') & 0x8000)
             {
-                y2 -= 1.0f / 60;
-                if (y2 < -1.0f)
-                    y2 = -1;
+                x1 -= 1.0f / 60;
+                if (x1 < -1.0f)
+                    x1 = -1;
             }
 
-            static unsigned char score1 = 0;
-            static unsigned char score2 = 0;
+            static unsigned char score = 0;
 
             static float ballX = 0;
-            static float ballY = 1.0f;
+            static float ballY = 1.0f;            
             float ballW = 0.025f;
             float ballH = ballW;
 
             static float trajX = 1.0f / 1.414f;
             static float trajY = -1.0f / 1.414f;
-
-            static unsigned char bricks[14][8] = {};
-            for (int x = 0; x < 14; ++x)
-            {
-                for (int y = 0; y < 8; ++y)
-                {
-                    unsigned char brick = (y/2)+1;
-                    bricks[x][y] = brick;
-                }
-            }
 
             ballX += trajX / 60;
             ballY += trajY / 60;
@@ -126,36 +147,39 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             bool hit = false;
             if (AABBTest(x1, y1, paddleWidth, paddleHeight,
                          ballX, ballY, ballW, ballH) &&
-                trajX < 0)
+                trajY < 0)
             {
                 // hit left paddle
-                trajX *= -1;
-                hit = true;
-            }
-            else if (AABBTest(x2, y2, paddleWidth, paddleHeight,
-                              ballX, ballY, ballW, ballH) &&
-                     trajX > 0)
-            {
-                // hit right paddle
-                trajX *= -1;
-                hit = true;
-            }
-            else if (ballX < -1.0f || ballX > 1.0f)
-            {
-                if (ballX > 1.0f)
-                    score1++;
-                if (ballX < -1.0f)
-                    score2++;
-                trajX *= -1;
                 trajY *= -1;
-                ballX = 0.0f;
-                ballY = (trajY < 0) ? 1.0f : -1.0f;
+                hit = true;
+            }
+            if (ballX < -1.0f || ballX > 1.0f)
+            {
+                trajX *= -1;
+                // trajY *= -1;
+                // ballX = 0.0f;
+                ballX = (trajX < 0) ? 1.0f : -1.0f;
+                hit = true;
             }
 
             if (ballY > 1.0f || ballY < -1.0f)
             {
                 trajY *= -1;
                 hit = true;
+            }
+
+            for (int x = 0; x < 14; ++x)
+            {
+                for (int y = 0; y < 8; ++y)
+                {
+                    brick_info b = bricks[x][y];
+                    bool result = AABBTest(ballX, ballY, ballW, ballH,
+                                           b.x, b.y, b.width, b.height);
+                    if (result) {
+                        if (trajY > 0 || trajY < 0) trajY *= -1;                        
+                        hit = true;
+                    }
+                }
             }
 
             if (hit)
@@ -168,7 +192,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             fontConstantBufferData.view[0] = (float)window.height / (float)window.width;
             renderer.StartDraw(0.255f, 0.255f, 0.255f);
             renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
-            renderer.DrawRect(x2, y2, paddleWidth, paddleHeight);
             renderer.DrawRect(ballX, ballY, ballW, ballH);
 
             for (int i = 0; i <= 30; ++i)
@@ -179,23 +202,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             for (int x = 0; x < 14; ++x)
             {
                 for (int y = 0; y < 8; ++y)
-                {                    
-                    static float (colour[5])[4] = {
-                        {1, 0, 1, 1},
-                        {1, 1, 0, 1},
-                        {0.15f, 0.75f, .15f, 1},
-                        {1, 0.5f, 0, 1},
-                        {1, 0, 0, 1},
-                    };
+                {
+                    brick_info brick = bricks[x][y];
 
-                    unsigned char brick = bricks[x][y];
-                    if (brick != 0) {                        
-                        float r = (colour[brick])[0];
-                        float g = (colour[brick])[1];
-                        float b = (colour[brick])[2];                        
-                        // renderer.DrawRect((x*paddleHeight))-1.0f, y/16.0f, paddleWidth, paddleHeight, 3.14159f/2, r, g, b);
-                        renderer.DrawRect((2*x/14.0f)-1.0f, y/16.0f, paddleWidth, paddleHeight, 3.14159f/2, r, g, b);
-                    }
+                    if (brick.alive)
+                        renderer.DrawRect(brick.x, brick.y, brick.width, brick.height, 0,
+                                          brick.colour[0], brick.colour[1], brick.colour[2]);
                 }
             }
 
@@ -203,13 +215,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             float chW = chScale * 4.0f / 6.0f;
             float chH = chScale;
 
-            renderer.DrawFontRect(-0.5f, 0.66667f, score1 % 10, chW, chH);
-            renderer.DrawFontRect(-0.5f - chW, 0.66667f, (score1 / 10) % 10, chW, chH);
-            renderer.DrawFontRect(-0.5f - 2 * chW, 0.66667f, (score1 / 100) % 1000, chW, chH);
-
-            renderer.DrawFontRect(0.5f + 2 * chW, 0.66667f, score2 % 10, chW, chH);
-            renderer.DrawFontRect(0.5f + chW, 0.66667f, (score2 / 10) % 10, chW, chH);
-            renderer.DrawFontRect(0.5f, 0.66667f, (score2 / 100) % 10, chW, chH);
+            renderer.DrawFontRect(-0.5f, 0.66667f, score % 10, chW, chH);
+            renderer.DrawFontRect(-0.5f - chW, 0.66667f, (score / 10) % 10, chW, chH);
+            renderer.DrawFontRect(-0.5f - 2 * chW, 0.66667f, (score / 100) % 1000, chW, chH);
 
             renderer.pSwapChain->Present(1, 0);
 
