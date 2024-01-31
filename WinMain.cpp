@@ -25,7 +25,12 @@
 
 #include "src/XAudioRenderer.hpp"
 
-
+bool AABBTest(float x1, float y1, float w1, float h1,
+              float x2, float y2, float w2, float h2)
+{
+    return (fabs(x2 - x1) <= ((w1 + w2) / 2.0f) &&
+            fabs(y2 - y1) <= ((h1 + h2) / 2.0f));
+}
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
@@ -37,7 +42,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     XAudioRenderer xa = XAudioRenderer();
 
     ShowWindow(window.hwnd, SW_SHOWDEFAULT);
-    
+
     unsigned int frameCount = 0;
 
     bool quit = false;
@@ -105,19 +110,31 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static float trajX = 1.0f / 1.414f;
             static float trajY = -1.0f / 1.414f;
 
+            static unsigned char bricks[14][8] = {};
+            for (int x = 0; x < 14; ++x)
+            {
+                for (int y = 0; y < 8; ++y)
+                {
+                    unsigned char brick = (y/2)+1;
+                    bricks[x][y] = brick;
+                }
+            }
+
             ballX += trajX / 60;
             ballY += trajY / 60;
 
             bool hit = false;
-            if (fabs(ballX - x1) <= (paddleWidth / 2 + ballW / 2) &&
-                fabs(ballY - y1) <= (paddleHeight / 2 + ballH / 2) && trajX < 0)
+            if (AABBTest(x1, y1, paddleWidth, paddleHeight,
+                         ballX, ballY, ballW, ballH) &&
+                trajX < 0)
             {
                 // hit left paddle
                 trajX *= -1;
                 hit = true;
             }
-            else if (fabs(ballX - x2) <= (paddleWidth / 2 + ballW / 2) &&
-                     fabs(ballY - y2) <= (paddleHeight / 2 + ballH / 2) && trajX > 0)
+            else if (AABBTest(x2, y2, paddleWidth, paddleHeight,
+                              ballX, ballY, ballW, ballH) &&
+                     trajX > 0)
             {
                 // hit right paddle
                 trajX *= -1;
@@ -159,10 +176,33 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 renderer.DrawRect(0.0f, i / 15.0f - 1.0f, 0.01f, 0.035f);
             }
 
+            for (int x = 0; x < 14; ++x)
+            {
+                for (int y = 0; y < 8; ++y)
+                {                    
+                    static float (colour[5])[4] = {
+                        {1, 0, 1, 1},
+                        {1, 1, 0, 1},
+                        {0.15f, 0.75f, .15f, 1},
+                        {1, 0.5f, 0, 1},
+                        {1, 0, 0, 1},
+                    };
+
+                    unsigned char brick = bricks[x][y];
+                    if (brick != 0) {                        
+                        float r = (colour[brick])[0];
+                        float g = (colour[brick])[1];
+                        float b = (colour[brick])[2];                        
+                        // renderer.DrawRect((x*paddleHeight))-1.0f, y/16.0f, paddleWidth, paddleHeight, 3.14159f/2, r, g, b);
+                        renderer.DrawRect((2*x/14.0f)-1.0f, y/16.0f, paddleWidth, paddleHeight, 3.14159f/2, r, g, b);
+                    }
+                }
+            }
+
             float chScale = 0.2f;
             float chW = chScale * 4.0f / 6.0f;
             float chH = chScale;
-                                    
+
             renderer.DrawFontRect(-0.5f, 0.66667f, score1 % 10, chW, chH);
             renderer.DrawFontRect(-0.5f - chW, 0.66667f, (score1 / 10) % 10, chW, chH);
             renderer.DrawFontRect(-0.5f - 2 * chW, 0.66667f, (score1 / 100) % 1000, chW, chH);

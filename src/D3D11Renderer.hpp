@@ -17,6 +17,7 @@ __declspec(align(16)) struct ConstantBufferStruct
                       0, 1, 0, 0,
                       0, 0, 1, 0,
                       0, 0, 0, 1};
+    float colour[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     float offset[2] = {0, 0};
     float scale[2] = {1, 1};
     float rot;
@@ -78,12 +79,16 @@ public:
             OutputDebugStringA("Failed to creat D3D11 Device Resources\n");
     }
 
-    void DrawRect(float x, float y, float w = 1.0f, float h = 1.0f, float theta = 0.0f)
+    void DrawRect(float x, float y, float w = 1.0f, float h = 1.0f, float theta = 0.0f,
+                  float r = 1.0f, float g = 1.0f, float b = 1.0f)
     {
         constantBufferData.offset[0] = x;
         constantBufferData.offset[1] = y;
         constantBufferData.scale[0] = w;
         constantBufferData.scale[1] = h;
+        constantBufferData.colour[0] = r;
+        constantBufferData.colour[1] = g;
+        constantBufferData.colour[2] = b;
         constantBufferData.rot = theta;
 
         pContext->UpdateSubresource(m_pConstantBuffer, 0, nullptr, &constantBufferData, 0, 0);
