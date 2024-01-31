@@ -10,8 +10,9 @@
 class XAudioRenderer
 {
 public:
+    static const int numSourceVoices = 32;
     IXAudio2 *pXAudio2 = nullptr;
-    IXAudio2SourceVoice *pSourceVoice;
+    IXAudio2SourceVoice *pSourceVoice[numSourceVoices];
     WAVEFORMATEXTENSIBLE wfx = {0};
     XAUDIO2_BUFFER buffer = {0};
 
@@ -27,16 +28,30 @@ public:
         hr = LoadSound();
 
         // start xaudio
-
-        hr = pXAudio2->CreateSourceVoice(&pSourceVoice, (WAVEFORMATEX *)&wfx);
+        for (int i = 0; i < numSourceVoices; ++i)
+        {
+            hr = pXAudio2->CreateSourceVoice(&pSourceVoice[i], (WAVEFORMATEX *)&wfx);
+        }
     }
 
-    void Play()
+    void Play(float pitchChange = 1.0f)
     {
-        pSourceVoice->Stop(0);
-        pSourceVoice->FlushSourceBuffers();
-        pSourceVoice->SubmitSourceBuffer(&buffer);
-        pSourceVoice->Start(0);
+        for (int i = 0; i < numSourceVoices; ++i)
+        {
+            XAUDIO2_VOICE_STATE voiceState;
+            pSourceVoice[i]->GetState(&voiceState);
+
+            if (voiceState.BuffersQueued <= 0)
+            {
+                // Sound has finished playing, start a new one
+                pSourceVoice[i]->Stop(0);
+                pSourceVoice[i]->SetFrequencyRatio(pitchChange);
+                pSourceVoice[i]->FlushSourceBuffers();
+                pSourceVoice[i]->SubmitSourceBuffer(&buffer);
+                pSourceVoice[i]->Start(0);
+                return;
+            }
+        }
     }
 
 private:
