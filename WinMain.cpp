@@ -67,12 +67,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
 
             // game code
-            static float x1 = -1.0f;
+            static float x1 = 0.0f;
             static float y1 = -0.8f;
             float paddleWidth = 0.1f;
             float paddleHeight = 0.025f;
-            float brickWidth = 0.13f; //1/7.0f
-            float brickHeight = 0.05f; // 1/16
+            float brickWidth = 1/7.0f; //1/7.0f
+            float brickHeight = 1/16.0f; // 1/16
 
             struct brick_info
             {
@@ -137,7 +137,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static unsigned int score = 0;
 
             static float ballX = 0;
-            static float ballY = -1.0f;
+            static float ballY = -0.8f + paddleHeight;
             float ballW = 0.025f;
             float ballH = ballW;
             static float speed = 1.0f;
@@ -206,8 +206,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
             renderer.DrawRect(ballX, ballY, ballW, ballH);
 
-            renderer.DrawRect(1.0f, 0.0f, 0.01f, 2);
-            renderer.DrawRect(-1.0f, 0.0f, 0.01f, 2);
+            renderer.DrawRect(1.005f, 0.0f, 0.01f, 2);
+            renderer.DrawRect(-1.005f, 0.0f, 0.01f, 2);
 
             for (int x = 0; x < 14; ++x)
             {
