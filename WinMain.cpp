@@ -37,7 +37,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     Win32Window &window = Win32Window::GetInstance();
 
     D3D11Renderer renderer = D3D11Renderer(window.hwnd);
-    renderer.LoadFontTexture();
+    renderer.LoadTextures();
 
     XAudioRenderer xa = XAudioRenderer();
 
@@ -71,8 +71,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static float y1 = -0.8f;
             float paddleWidth = 0.1f;
             float paddleHeight = 0.025f;
-            float brickWidth = 1/7.0f; //1/7.0f
-            float brickHeight = 1/16.0f; // 1/16
+            float brickWidth = 1 / 7.0f;   // 1/7.0f
+            float brickHeight = 1 / 16.0f; // 1/16
 
             struct brick_info
             {
@@ -86,7 +86,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             };
 
             static brick_info bricks[14][8] = {};
-            
+
             static bool brickInit = false;
             if (!brickInit)
             {
@@ -95,9 +95,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     for (int y = 0; y < 8; ++y)
                     {
                         static unsigned char points[4] = {
-                            2, 4, 8, 16
-                        };
-                        static float(colour[4])[4] = {                            
+                            2, 4, 8, 16};
+                        static float(colour[4])[4] = {
                             {0.15f, 0.75f, .15f, 1},
                             {1, 1, 0, 1},
                             {1, 0.41f, 0, 1},
@@ -108,7 +107,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         brick_info b;
                         b.width = brickWidth;
                         b.height = brickHeight;
-                        b.x = x / 7.0f + b.width/2.0f - 1.0f;
+                        b.x = x / 7.0f + b.width / 2.0f - 1.0f;
                         b.y = y / 16.0f;
                         b.colour[0] = (colour[index])[0];
                         b.colour[1] = (colour[index])[1];
@@ -178,19 +177,19 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 for (int y = 0; y < 8; ++y)
                 {
-                    brick_info b = bricks[x][y];                    
+                    brick_info b = bricks[x][y];
                     bool result = AABBTest(ballX, ballY, ballW, ballH,
                                            b.x, b.y, b.width, b.height);
                     if (b.alive && result)
                     {
                         if (trajY > 0 || trajY < 0)
-                            trajY *= -1;   
+                            trajY *= -1;
                         score += b.points;
                         // speed *= 1.0f + (1.0f / 100.0f);
-                        soundFreq = speed + (b.points/100.f);
+                        soundFreq = speed + (b.points / 100.f);
                         bricks[x][y].alive = false;
                         hit = true;
-                    }                    
+                    }
                 }
             }
 
@@ -215,10 +214,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     brick_info brick = bricks[x][y];
 
+                    // if (brick.alive)
+                    //     renderer.DrawRect(brick.x, brick.y,
+                    //                       brick.width, brick.height, 0,
+                    //                       brick.colour[0], brick.colour[1], brick.colour[2]);
+
                     if (brick.alive)
-                        renderer.DrawRect(brick.x, brick.y,
-                                          brick.width, brick.height, 0,
-                                          brick.colour[0], brick.colour[1], brick.colour[2]);
+                        renderer.DrawGameTextureRect(brick.x, brick.y, brick.width, brick.height, 0,
+                                                     -1.0f, 1.0f, 1.0f/3.0f, 1.0f/3.0f);
                 }
             }
 
@@ -228,7 +231,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             renderer.DrawFontRect(-0.5f, 0.66667f, score % 10, chW, chH);
             renderer.DrawFontRect(-0.5f - chW, 0.66667f, (score / 10) % 10, chW, chH);
-            renderer.DrawFontRect(-0.5f - 2 * chW, 0.66667f, (score / 100) % 1000, chW, chH);            
+            renderer.DrawFontRect(-0.5f - 2 * chW, 0.66667f, (score / 100) % 1000, chW, chH);
 
             renderer.pSwapChain->Present(1, 0);
 

@@ -51,6 +51,8 @@ public:
     ID3D11Texture2D *pBackBuffer;
     ID3D11RenderTargetView *pRenderTarget;
 
+    // game texture?
+
     D3D11Renderer(HWND hwnd)
     {
         HRESULT hr = S_OK;
@@ -138,6 +140,45 @@ public:
         pContext->VSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
         pContext->PSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
         pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
+        pContext->PSSetShaderResources(0u, 1u, &fontTextureShaderResourceView);
+        pContext->PSSetSamplers(0, 1, &samplerState);
+        pContext->DrawIndexed(m_indexCount, 0, 0);
+
+        fontConstantBufferData.offset[0] = 0.0f;
+        fontConstantBufferData.offset[1] = 0.0f;
+        fontConstantBufferData.scale[0] = 1.0f;
+        fontConstantBufferData.scale[1] = 1.0f;
+    }
+
+    void DrawGameTextureRect(float x = 0, float y = 0, float w = 1, float h = 1, float theta = 0,
+                             float uvX = 0, float uvY = 0, float uvScaleX = 1, float uvScaleY = 1)
+    {
+        // TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
+        fontConstantBufferData.offset[0] = x;
+        fontConstantBufferData.offset[1] = y;
+        fontConstantBufferData.uvScale[0] = uvScaleX;
+        fontConstantBufferData.uvScale[1] = uvScaleY;
+        fontConstantBufferData.uvOffset[0] = uvX;
+        fontConstantBufferData.uvOffset[1] = uvY;
+        fontConstantBufferData.scale[0] = w;
+        fontConstantBufferData.scale[1] = h;
+        fontConstantBufferData.rot = theta;
+
+        pContext->UpdateSubresource(m_pFontRenderConstantBuffer, 0, nullptr, &fontConstantBufferData, 0, 0);
+
+        UINT stride = sizeof(local_vertex);
+        UINT offset = 0;
+
+        pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
+        pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+        pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        pContext->IASetInputLayout(m_pInputLayout);
+        pContext->VSSetShader(m_pVertexShader[1], nullptr, 0);
+        pContext->VSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
+        pContext->PSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
+        pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
+        pContext->PSSetShaderResources(0u, 1u, &gameTextureShaderResourceView);
+        pContext->PSSetSamplers(0, 1, &samplerState);
         pContext->DrawIndexed(m_indexCount, 0, 0);
 
         fontConstantBufferData.offset[0] = 0.0f;
@@ -148,14 +189,6 @@ public:
 
     void StartDraw(float r = 0.098f, float g = 0.439f, float b = 0.439f)
     {
-        // WHAT IS THE DIFFERENCE BETWEEN USING MAP AND UpdateSubresource HERE??????
-        // D3D11_MAPPED_SUBRESOURCE mappedResource;
-        // HRESULT hr = pContext->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-        // memcpy(mappedResource.pData, &constantBufferData, sizeof(ConstantBufferStruct));
-        // pContext->Unmap(m_pConstantBuffer, 0);
-
-        // constantBufferData.view[0] = ;
-
         const float backColour[] = {r, g, b, 1.000f};
         pContext->ClearRenderTargetView(
             pRenderTarget,
@@ -167,28 +200,15 @@ public:
         //     0);
 
         pContext->OMSetRenderTargets(1, &pRenderTarget, nullptr);
-
-        // UINT stride = sizeof(DirectX::XMFLOAT2);
-        // UINT offset = 0;
-
-        // pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
-        // pContext->IASetIndexBuffer(m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
-        // pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        // pContext->IASetInputLayout(m_pInputLayout);
-        // pContext->VSSetShader(m_pVertexShader, nullptr, 0);
-        // pContext->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-        // pContext->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
-        // pContext->PSSetShader(m_pPixelShader, nullptr, 0);
-        // pContext->DrawIndexed(m_indexCount, 0, 0);
     }
 
-    void LoadFontTexture()
+    ID3D11Texture2D *LoadTexture(char *path, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
     {
         // load texture (bitmap font)
         int texWidth, texHeight, n;
         int forcedN = 4;
         stbi_set_flip_vertically_on_load(1);
-        unsigned char *clrData = stbi_load("assets/bitmap_font.png", &texWidth, &texHeight, &n, forcedN);
+        unsigned char *clrData = stbi_load(path, &texWidth, &texHeight, &n, forcedN);
 
         // create texture d3d11
 
@@ -197,7 +217,7 @@ public:
         texDesc.Height = texHeight;
         texDesc.MipLevels = 0;
         texDesc.ArraySize = 1;
-        texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        texDesc.Format = format;
         texDesc.SampleDesc.Count = 1;
         texDesc.SampleDesc.Quality = 0;
         texDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -209,22 +229,31 @@ public:
         sd.pSysMem = (void *)clrData;
         sd.SysMemPitch = texWidth * sizeof(unsigned int);
 
-        ID3D11Texture2D *bitmapFontTexture;
-        ID3D11SamplerState *samplerState;
-        HRESULT hr = pDevice->CreateTexture2D(&texDesc, nullptr, &bitmapFontTexture);
+        ID3D11Texture2D *texture;
+
+        HRESULT hr = pDevice->CreateTexture2D(&texDesc, nullptr, &texture);
         if (FAILED(hr))
         {
             OutputDebugStringA("Failed to create texture 2d\n");
         }
+        pContext->UpdateSubresource(texture, 0, nullptr, clrData, texWidth * forcedN, 0);
+        stbi_image_free(clrData);
+        return (texture);
+    }
+
+    void LoadTextures()
+    {
+        ID3D11Texture2D *bitmapFontTexture = LoadTexture("assets/bitmap_font.png");
+        ID3D11Texture2D *gameTexture = LoadTexture("assets/space_invaders.png");
 
         D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-        srvDesc.Format = texDesc.Format;
+        srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
         srvDesc.Texture2D.MostDetailedMip = 0;
         srvDesc.Texture2D.MipLevels = UINT_MAX;
 
-        ID3D11ShaderResourceView *textureShaderResourceView;
-        hr = pDevice->CreateShaderResourceView(bitmapFontTexture, &srvDesc, &textureShaderResourceView);
+        HRESULT hr = pDevice->CreateShaderResourceView(bitmapFontTexture, &srvDesc, &fontTextureShaderResourceView);
+        hr = pDevice->CreateShaderResourceView(gameTexture, &srvDesc, &gameTextureShaderResourceView);
 
         D3D11_SAMPLER_DESC samplerDesc = {};
         samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
@@ -237,16 +266,13 @@ public:
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
         hr = pDevice->CreateSamplerState(&samplerDesc, &samplerState);
-
-        pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
-        pContext->PSSetShaderResources(0u, 1u, &textureShaderResourceView);
-        pContext->PSSetSamplers(0, 1, &samplerState);
-
-        pContext->UpdateSubresource(bitmapFontTexture, 0, nullptr, clrData, texWidth * forcedN, 0);
-        stbi_image_free(clrData);
     }
 
 private:
+    ID3D11ShaderResourceView *fontTextureShaderResourceView;
+    ID3D11ShaderResourceView *gameTextureShaderResourceView;
+    ID3D11SamplerState *samplerState;
+
     HRESULT CreateConstantBuffers()
     {
         HRESULT hr = S_OK;
