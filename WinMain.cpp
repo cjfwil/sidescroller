@@ -60,67 +60,55 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         }
         else
         {
-            // play sound test only
-            if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-            {
-                xa.Play();
-            }
-
             // game code
             static float x1 = 0.0f;
             static float y1 = -0.8f;
             float paddleWidth = 0.1f;
             float paddleHeight = 0.025f;
-            float brickDimScale = 0.2f;
-            float brickWidth = 1*brickDimScale;
-            float brickHeight = 1*8.0/12.0f*brickDimScale;
+            float enemyDimScale = 0.2f;
+            float enemyWidth = 1 * enemyDimScale;
+            float enemyHeight = 1 * 8.0 / 12.0f * enemyDimScale;
 
-            struct brick_info
+            struct enemy_info
             {
                 float x;
                 float y;
                 float width;
                 float height;
-                float colour[4];
+                unsigned int index;
                 bool alive = true;
                 unsigned char points = 1;
             };
 
-            static const int numBricksW = 1;
-            static const int numBricksH = 1;
-            static brick_info bricks[numBricksW][numBricksH] = {};
+            static const int numenemysW = 11;
+            static const int numenemysH = 5;
+            static enemy_info enemies[numenemysW][numenemysH] = {};
 
-            static bool brickInit = false;
-            if (!brickInit)
+            static bool enemyInit = false;
+            if (!enemyInit)
             {
-                for (int x = 0; x < numBricksW; ++x)
+                for (int x = 0; x < numenemysW; ++x)
                 {
-                    for (int y = 0; y < numBricksH; ++y)
+                    for (int y = 0; y < numenemysH; ++y)
                     {
-                        static unsigned char points[4] = {
-                            2, 4, 8, 16};
-                        static float(colour[4])[4] = {
-                            {0.15f, 0.75f, .15f, 1},
-                            {1, 1, 0, 1},
-                            {1, 0.41f, 0, 1},
-                            {1, 0, 0, 1},
-                        };
-                        unsigned char index = (y / 2);
+                        static unsigned char points[4] = {2, 4, 8, 16};
+                        unsigned int index = (y / 2);
 
-                        brick_info b;
-                        b.width = brickWidth;
-                        b.height = brickHeight;
+                        float scaleFactor = 0.80f;
+                        enemy_info b;
+                        b.width = enemyWidth;
+                        b.height = enemyHeight;
                         b.x = x * b.width + b.width / 2.0f - 1.0f;
-                        b.y = y * b.width;
-                        b.colour[0] = (colour[index])[0];
-                        b.colour[1] = (colour[index])[1];
-                        b.colour[2] = (colour[index])[2];
-                        b.colour[3] = (colour[index])[3];
+                        b.y = y * b.height;
                         b.points = points[index];
-                        bricks[x][y] = b;
+                        b.index = index;
+
+                        b.width *= scaleFactor;
+                        b.height *= scaleFactor;
+                        enemies[x][y] = b;
                     }
                 }
-                brickInit = true;
+                enemyInit = true;
             }
 
             if (GetAsyncKeyState('D') & 0x8000)
@@ -136,69 +124,72 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     x1 = -1;
             }
 
+            static struct projectile
+            {
+                float x;
+                float y;
+                float w = 0.025f;
+                float h = w * 3;
+                float trajX = 0;
+                float trajY = 1.0f / 1.414f;
+                bool active = false;
+            } ball;
+
             static unsigned int score = 0;
 
-            static float ballX = 0;
-            static float ballY = -0.8f + paddleHeight;
-            float ballW = 0.025f;
-            float ballH = ballW;
-            static float speed = 1.0f;
+            static float speed = 2.5f;
 
-            static float trajX = 1.0f / 1.414f;
-            static float trajY = 1.0f / 1.414f;
-
-            ballX += trajX / 60 * speed;
-            ballY += trajY / 60 * speed;
-
-            float soundFreq = speed;
+            float soundFreq = speed * 0.4f;
             bool hit = false;
-            if (AABBTest(x1, y1, paddleWidth, paddleHeight,
-                         ballX, ballY, ballW, ballH) &&
-                trajY < 0)
-            {
-                // hit left paddle
-                trajY *= -1;
-                hit = true;
-            }
-            if (ballX < -1.0f || ballX > 1.0f)
-            {
-                trajX *= -1;
-                // trajY *= -1;
-                // ballX = 0.0f;
-                ballX = (trajX < 0) ? 1.0f : -1.0f;
-                hit = true;
-                soundFreq = 0.9f * speed;
-            }
 
-            if (ballY > 1.0f || ballY < -1.0f)
+            if (ball.active)
             {
-                trajY *= -1;
-                hit = true;
-            }
+                ball.x += ball.trajX / 60 * speed;
+                ball.y += ball.trajY / 60 * speed;
 
-            for (int x = 0; x < numBricksW; ++x)
-            {
-                for (int y = 0; y < numBricksH; ++y)
+                if (AABBTest(ball.x, ball.y, ball.w, ball.h,
+                             0, 0, 2, 2)) // test ball against screen
                 {
-                    brick_info b = bricks[x][y];
-                    bool result = AABBTest(ballX, ballY, ballW, ballH,
-                                           b.x, b.y, b.width, b.height);
-                    if (b.alive && result)
+                    for (int x = 0; x < numenemysW; ++x)
                     {
-                        if (trajY > 0 || trajY < 0)
-                            trajY *= -1;
-                        score += b.points;
-                        // speed *= 1.0f + (1.0f / 100.0f);
-                        soundFreq = speed + (b.points / 100.f);
-                        bricks[x][y].alive = false;
-                        hit = true;
+                        for (int y = 0; y < numenemysH; ++y)
+                        {
+                            enemy_info b = enemies[x][y];
+                            bool result = AABBTest(ball.x, ball.y, ball.w, ball.h,
+                                                   b.x, b.y, b.width, b.height);
+                            if (b.alive && result)
+                            {
+                                score += b.points;
+                                soundFreq = speed + (b.points / 100.f);
+                                enemies[x][y].alive = false;
+                                hit = true;
+                                ball.active = false;
+                            }
+                        }
                     }
+                }
+                else
+                {
+                    ball.active = false;
+                }
+            }
+            else
+            {
+                ball.x = x1;
+                ball.y = y1;
+                if (GetAsyncKeyState(VK_SPACE) & 0x8000)
+                {
+                    xa.Play();
+                    ball.x = x1;
+                    ball.y = y1;
+                    ball.active = true;
                 }
             }
 
             if (hit)
             {
                 xa.Play(soundFreq);
+                hit = false;
             }
 
             // draw game
@@ -206,43 +197,61 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             texRenderConstantBufferData.view[0] = (float)window.height / (float)window.width;
             renderer.StartDraw(0.255f, 0.255f, 0.255f);
             renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
-            renderer.DrawRect(ballX, ballY, ballW, ballH);
+            if (ball.active)
+                renderer.DrawRect(ball.x, ball.y, ball.w, ball.h);
 
-            renderer.DrawRect(1.005f, 0.0f, 0.01f, 2);
-            renderer.DrawRect(-1.005f, 0.0f, 0.01f, 2);
-
-            for (int x = 0; x < numBricksW; ++x)
+            static int aniFrame = 0;
+            if (frameCount % 60 == 0)
             {
-                for (int y = 0; y < numBricksH; ++y)
+                aniFrame = (aniFrame == 0) ? 1 : 0;
+            }
+            for (int x = 0; x < numenemysW; ++x)
+            {
+                for (int y = 0; y < numenemysH; ++y)
                 {
-                    brick_info brick = bricks[x][y];
+                    enemy_info enemy = enemies[x][y];
+                    if (enemy.alive)
+                    {
+                        // todo move this to enemy creation and account for different sizes of clip,
+                        //  so change actual width and height of enemy (plus collision)
+                        // animation is just a series of rectangles and a framerate
+                        int x1, y1, x2, y2;
+                        x1 = 2;
+                        y1 = 4;
+                        x2 = 14;
+                        y2 = 12;
+                        if (enemy.index == 1)
+                        {
+                            x1 = 2;
+                            y1 = 20;
+                            x2 = x1 + 11;
+                            y2 = y1 + 8;
+                        }
+                        else if (enemy.index == 2)
+                        {
+                            x1 = 4;
+                            y1 = 36;
+                            x2 = x1 + 8;
+                            y2 = y1 + 8;
+                        }
 
-                    // if (brick.alive)
-                    //     renderer.DrawRect(brick.x, brick.y,
-                    //                       brick.width, brick.height, 0,
-                    //                       brick.colour[0], brick.colour[1], brick.colour[2]);
-                    static int aniFrame = 0;
-                    if (frameCount % 30 == 0) {
-                        aniFrame = (aniFrame == 0) ? 1 : 0;
+                        renderer.DrawGameTextureRect(enemy.x, enemy.y, enemy.width, enemy.height, 0,
+                                                     x1 + 16 * aniFrame, y1,
+                                                     x2 + 16 * aniFrame, y2);
                     }
-                    // if (brick.alive)
-                        renderer.DrawGameTextureRect(brick.x, brick.y, brick.width, brick.height, 0,
-                                                     (2.0f/64.0f)+(16.0f/64.0f)*aniFrame, (4.0f/64.0f), 
-                                                     (14.0f/64.0f)+(16.0f/64.0f)*aniFrame, (12.0f/64.0f));
                 }
             }
 
-            float chScale = 0.2f;
+            float chScale = 0.1f;
             float chW = chScale * 4.0f / 6.0f;
             float chH = chScale;
 
-            renderer.DrawFontRect(-0.5f, 0.66667f, score % 10, chW, chH);
-            renderer.DrawFontRect(-0.5f - chW, 0.66667f, (score / 10) % 10, chW, chH);
-            renderer.DrawFontRect(-0.5f - 2 * chW, 0.66667f, (score / 100) % 1000, chW, chH);
-
-            renderer.pSwapChain->Present(1, 0);
+            renderer.DrawFontRect(-1.05f, 0.66667f, score % 10, chW, chH);
+            renderer.DrawFontRect(-1.05f - chW, 0.66667f, (score / 10) % 10, chW, chH);
+            renderer.DrawFontRect(-1.05f - 2 * chW, 0.66667f, (score / 100) % 1000, chW, chH);
 
             frameCount++;
+            renderer.pSwapChain->Present(1, 0);
         }
     }
     return (0);
