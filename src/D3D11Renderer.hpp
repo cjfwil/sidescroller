@@ -24,7 +24,7 @@ __declspec(align(16)) struct ConstantBufferStruct
 } constantBufferData;
 static_assert((sizeof(ConstantBufferStruct) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
 
-__declspec(align(16)) struct FontConstantBufferStruct
+__declspec(align(16)) struct TexRenderConstantBufferStruct
 {
     float view[16] = {1, 0, 0, 0,
                       0, 1, 0, 0,
@@ -35,8 +35,8 @@ __declspec(align(16)) struct FontConstantBufferStruct
     float uvOffset[2] = {0, 0};
     float uvScale[2] = {1, 1};
     float rot;
-} fontConstantBufferData;
-static_assert((sizeof(ConstantBufferStruct) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
+} texRenderConstantBufferData;
+static_assert((sizeof(TexRenderConstantBufferStruct) % 16) == 0, "TexRenderConstantBufferStruct size must be 16-byte aligned");
 
 class D3D11Renderer
 {
@@ -117,17 +117,17 @@ public:
     void DrawFontRect(float x, float y, unsigned char number, float w = 1.0f, float h = 1.0f, float theta = 0.0f)
     {
         // TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
-        fontConstantBufferData.offset[0] = x;
-        fontConstantBufferData.offset[1] = y;
-        fontConstantBufferData.uvScale[0] = 1 / 10.0f;
-        fontConstantBufferData.uvScale[1] = 1 / 4.0f;
-        fontConstantBufferData.uvOffset[0] = number / 10.0f;
-        fontConstantBufferData.uvOffset[1] = 3 / 4.0f;
-        fontConstantBufferData.scale[0] = w;
-        fontConstantBufferData.scale[1] = h;
-        fontConstantBufferData.rot = theta;
+        texRenderConstantBufferData.offset[0] = x;
+        texRenderConstantBufferData.offset[1] = y;
+        texRenderConstantBufferData.uvScale[0] = 1 / 10.0f;
+        texRenderConstantBufferData.uvScale[1] = 1 / 4.0f;
+        texRenderConstantBufferData.uvOffset[0] = number / 10.0f;
+        texRenderConstantBufferData.uvOffset[1] = 3 / 4.0f;
+        texRenderConstantBufferData.scale[0] = w;
+        texRenderConstantBufferData.scale[1] = h;
+        texRenderConstantBufferData.rot = theta;
 
-        pContext->UpdateSubresource(m_pFontRenderConstantBuffer, 0, nullptr, &fontConstantBufferData, 0, 0);
+        pContext->UpdateSubresource(m_pTexRenderConstantBuffer, 0, nullptr, &texRenderConstantBufferData, 0, 0);
 
         UINT stride = sizeof(local_vertex);
         UINT offset = 0;
@@ -137,17 +137,17 @@ public:
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         pContext->IASetInputLayout(m_pInputLayout);
         pContext->VSSetShader(m_pVertexShader[1], nullptr, 0);
-        pContext->VSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
-        pContext->PSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
+        pContext->VSSetConstantBuffers(0, 1, &m_pTexRenderConstantBuffer);
+        pContext->PSSetConstantBuffers(0, 1, &m_pTexRenderConstantBuffer);
         pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
         pContext->PSSetShaderResources(0u, 1u, &fontTextureShaderResourceView);
         pContext->PSSetSamplers(0, 1, &samplerState);
         pContext->DrawIndexed(m_indexCount, 0, 0);
 
-        fontConstantBufferData.offset[0] = 0.0f;
-        fontConstantBufferData.offset[1] = 0.0f;
-        fontConstantBufferData.scale[0] = 1.0f;
-        fontConstantBufferData.scale[1] = 1.0f;
+        texRenderConstantBufferData.offset[0] = 0.0f;
+        texRenderConstantBufferData.offset[1] = 0.0f;
+        texRenderConstantBufferData.scale[0] = 1.0f;
+        texRenderConstantBufferData.scale[1] = 1.0f;
     }
 
 
@@ -157,17 +157,17 @@ public:
                              float uvX1 = 0, float uvY1 = 0, float uvX2 = 1, float uvY2 = 1)
     {
         // TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
-        fontConstantBufferData.offset[0] = x;
-        fontConstantBufferData.offset[1] = y;
-        fontConstantBufferData.uvScale[0] = (uvX2-uvX1);
-        fontConstantBufferData.uvScale[1] = (uvY2-uvY1);
-        fontConstantBufferData.uvOffset[0] = uvX1;
-        fontConstantBufferData.uvOffset[1] = uvY1;
-        fontConstantBufferData.scale[0] = w;
-        fontConstantBufferData.scale[1] = h;
-        fontConstantBufferData.rot = theta;
+        texRenderConstantBufferData.offset[0] = x;
+        texRenderConstantBufferData.offset[1] = y;
+        texRenderConstantBufferData.uvScale[0] = (uvX2-uvX1);
+        texRenderConstantBufferData.uvScale[1] = (uvY2-uvY1);
+        texRenderConstantBufferData.uvOffset[0] = uvX1;
+        texRenderConstantBufferData.uvOffset[1] = uvY1;
+        texRenderConstantBufferData.scale[0] = w;
+        texRenderConstantBufferData.scale[1] = h;
+        texRenderConstantBufferData.rot = theta;
 
-        pContext->UpdateSubresource(m_pFontRenderConstantBuffer, 0, nullptr, &fontConstantBufferData, 0, 0);
+        pContext->UpdateSubresource(m_pTexRenderConstantBuffer, 0, nullptr, &texRenderConstantBufferData, 0, 0);
 
         UINT stride = sizeof(local_vertex);
         UINT offset = 0;
@@ -177,17 +177,17 @@ public:
         pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         pContext->IASetInputLayout(m_pInputLayout);
         pContext->VSSetShader(m_pVertexShader[1], nullptr, 0);
-        pContext->VSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
-        pContext->PSSetConstantBuffers(0, 1, &m_pFontRenderConstantBuffer);
+        pContext->VSSetConstantBuffers(0, 1, &m_pTexRenderConstantBuffer);
+        pContext->PSSetConstantBuffers(0, 1, &m_pTexRenderConstantBuffer);
         pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
         pContext->PSSetShaderResources(0u, 1u, &gameTextureShaderResourceView);
         pContext->PSSetSamplers(0, 1, &samplerState);
         pContext->DrawIndexed(m_indexCount, 0, 0);
 
-        fontConstantBufferData.offset[0] = 0.0f;
-        fontConstantBufferData.offset[1] = 0.0f;
-        fontConstantBufferData.scale[0] = 1.0f;
-        fontConstantBufferData.scale[1] = 1.0f;
+        texRenderConstantBufferData.offset[0] = 0.0f;
+        texRenderConstantBufferData.offset[1] = 0.0f;
+        texRenderConstantBufferData.scale[0] = 1.0f;
+        texRenderConstantBufferData.scale[1] = 1.0f;
     }
 
     void StartDraw(float r = 0.098f, float g = 0.439f, float b = 0.439f)
@@ -289,13 +289,13 @@ private:
             &m_pConstantBuffer);
 
         CD3D11_BUFFER_DESC cbFontDesc(
-            sizeof(FontConstantBufferStruct),
+            sizeof(TexRenderConstantBufferStruct),
             D3D11_BIND_CONSTANT_BUFFER);
 
         hr = pDevice->CreateBuffer(
             &cbFontDesc,
             nullptr,
-            &m_pFontRenderConstantBuffer);
+            &m_pTexRenderConstantBuffer);
         return hr;
     }
 
@@ -445,7 +445,7 @@ private:
 public:
     ID3D11PixelShader *m_pPixelShader[2] = {};
     ID3D11Buffer *m_pConstantBuffer;
-    ID3D11Buffer *m_pFontRenderConstantBuffer;
+    ID3D11Buffer *m_pTexRenderConstantBuffer;
 
     HRESULT CreateShaders(char *vs_path, char *ps_path)
     {

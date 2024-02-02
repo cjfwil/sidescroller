@@ -8,7 +8,7 @@ cbuffer view_info : register(b0)
     float rot;    
 }
 
-Texture2D fontTexture : register(t0);
+Texture2D tex : register(t0);
 SamplerState samplerState : register(s0);
 
 struct ps_input {
@@ -33,7 +33,7 @@ ps_input vs_main(float2 pos: POSITION, float2 uv: TEXCOORD)
 
 float4 ps_main(ps_input input) : SV_TARGET
 {
-    float4 clr = fontTexture.Sample(samplerState, input.uv);
+    float4 clr = tex.Sample(samplerState, input.uv);
     clip(clr.a == 0 ? -1 : 1);    
     return (clr);
 }

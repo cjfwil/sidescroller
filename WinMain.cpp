@@ -203,7 +203,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
-            fontConstantBufferData.view[0] = (float)window.height / (float)window.width;
+            texRenderConstantBufferData.view[0] = (float)window.height / (float)window.width;
             renderer.StartDraw(0.255f, 0.255f, 0.255f);
             renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
             renderer.DrawRect(ballX, ballY, ballW, ballH);
