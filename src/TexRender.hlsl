@@ -33,6 +33,7 @@ ps_input vs_main(float2 pos: POSITION, float2 uv: TEXCOORD)
 
 float4 ps_main(ps_input input) : SV_TARGET
 {
+    //todo I want proper sub pixel filtering here so pixel art looks good
     float4 clr = tex.Sample(samplerState, input.uv);
     clip(clr.a == 0 ? -1 : 1);    
     return (clr);

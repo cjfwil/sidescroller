@@ -69,6 +69,24 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             float enemyWidth = 1 * enemyDimScale;
             float enemyHeight = 1 * 8.0 / 12.0f * enemyDimScale;
 
+            struct v2
+            {
+                float x;
+                float y;
+            };
+
+            struct clip_rect
+            {
+                v2 point[2];
+            };
+
+            // we define a sprite animation as just a series of rectangles and a framerate
+            struct sprite_animation
+            {
+                int frameRate = 60;
+                clip_rect frames[2]; // right now only need 2 frames of animation
+            };
+
             struct enemy_info
             {
                 float x;
@@ -78,6 +96,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 unsigned int index;
                 bool alive = true;
                 unsigned char points = 1;
+                
+                sprite_animation anim = {};
             };
 
             static const int numenemysW = 11;
@@ -105,7 +125,50 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
                         b.width *= scaleFactor;
                         b.height *= scaleFactor;
+
+                        int x1, y1, x2, y2;
+                        if (index == 0)
+                        {
+                            x1 = 2;
+                            y1 = 4;
+                            x2 = 14;
+                            y2 = 12;
+                        }
+                        if (index == 1)
+                        {
+                            x1 = 2;
+                            y1 = 20;
+                            x2 = x1 + 11;
+                            y2 = y1 + 8;
+                        }
+                        if (index == 2)
+                        {
+                            x1 = 4;
+                            y1 = 36;
+                            x2 = x1 + 8;
+                            y2 = y1 + 8;
+                        }
+
+                        b.anim.frames[0].point[0].x = x1;
+                        b.anim.frames[0].point[0].y = y1;
+
+                        b.anim.frames[0].point[1].x = x2;
+                        b.anim.frames[0].point[1].y = y2;
+
+                        b.anim.frames[1].point[0].x = x1 + 16;
+                        b.anim.frames[1].point[0].y = y1;
+
+                        b.anim.frames[1].point[1].x = x2 + 16;
+                        b.anim.frames[1].point[1].y = y2;
+
+                        b.width *= (x2 - x1) / 12.0f;
+                        // b.height *= (y2-y1)/16.0f;
+
                         enemies[x][y] = b;
+
+                        // // renderer.DrawGameTextureRect(enemy.x, enemy.y, enemy.width, enemy.height, 0,
+                        //                              x1 + 16 * aniFrame, y1,
+                        //                              x2 + 16 * aniFrame, y2);
                     }
                 }
                 enemyInit = true;
@@ -211,33 +274,15 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     enemy_info enemy = enemies[x][y];
                     if (enemy.alive)
-                    {
-                        // todo move this to enemy creation and account for different sizes of clip,
-                        //  so change actual width and height of enemy (plus collision)
-                        // animation is just a series of rectangles and a framerate
+                    {                        
                         int x1, y1, x2, y2;
-                        x1 = 2;
-                        y1 = 4;
-                        x2 = 14;
-                        y2 = 12;
-                        if (enemy.index == 1)
-                        {
-                            x1 = 2;
-                            y1 = 20;
-                            x2 = x1 + 11;
-                            y2 = y1 + 8;
-                        }
-                        else if (enemy.index == 2)
-                        {
-                            x1 = 4;
-                            y1 = 36;
-                            x2 = x1 + 8;
-                            y2 = y1 + 8;
-                        }
+                        x1 = enemy.anim.frames[aniFrame].point[0].x;
+                        y1 = enemy.anim.frames[aniFrame].point[0].y;
+                        x2 = enemy.anim.frames[aniFrame].point[1].x;
+                        y2 = enemy.anim.frames[aniFrame].point[1].y;
 
                         renderer.DrawGameTextureRect(enemy.x, enemy.y, enemy.width, enemy.height, 0,
-                                                     x1 + 16 * aniFrame, y1,
-                                                     x2 + 16 * aniFrame, y2);
+                                                     x1, y1, x2, y2);
                     }
                 }
             }
