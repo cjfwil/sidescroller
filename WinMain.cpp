@@ -71,8 +71,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static float y1 = -0.8f;
             float paddleWidth = 0.1f;
             float paddleHeight = 0.025f;
-            float brickWidth = 1 / 7.0f;   // 1/7.0f
-            float brickHeight = 1 / 16.0f; // 1/16
+            float brickDimScale = 0.2f;
+            float brickWidth = 1*brickDimScale;
+            float brickHeight = 1*8.0/12.0f*brickDimScale;
 
             struct brick_info
             {
@@ -85,14 +86,16 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 unsigned char points = 1;
             };
 
-            static brick_info bricks[14][8] = {};
+            static const int numBricksW = 1;
+            static const int numBricksH = 1;
+            static brick_info bricks[numBricksW][numBricksH] = {};
 
             static bool brickInit = false;
             if (!brickInit)
             {
-                for (int x = 0; x < 14; ++x)
+                for (int x = 0; x < numBricksW; ++x)
                 {
-                    for (int y = 0; y < 8; ++y)
+                    for (int y = 0; y < numBricksH; ++y)
                     {
                         static unsigned char points[4] = {
                             2, 4, 8, 16};
@@ -107,8 +110,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         brick_info b;
                         b.width = brickWidth;
                         b.height = brickHeight;
-                        b.x = x / 7.0f + b.width / 2.0f - 1.0f;
-                        b.y = y / 16.0f;
+                        b.x = x * b.width + b.width / 2.0f - 1.0f;
+                        b.y = y * b.width;
                         b.colour[0] = (colour[index])[0];
                         b.colour[1] = (colour[index])[1];
                         b.colour[2] = (colour[index])[2];
@@ -173,9 +176,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 hit = true;
             }
 
-            for (int x = 0; x < 14; ++x)
+            for (int x = 0; x < numBricksW; ++x)
             {
-                for (int y = 0; y < 8; ++y)
+                for (int y = 0; y < numBricksH; ++y)
                 {
                     brick_info b = bricks[x][y];
                     bool result = AABBTest(ballX, ballY, ballW, ballH,
@@ -208,9 +211,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             renderer.DrawRect(1.005f, 0.0f, 0.01f, 2);
             renderer.DrawRect(-1.005f, 0.0f, 0.01f, 2);
 
-            for (int x = 0; x < 14; ++x)
+            for (int x = 0; x < numBricksW; ++x)
             {
-                for (int y = 0; y < 8; ++y)
+                for (int y = 0; y < numBricksH; ++y)
                 {
                     brick_info brick = bricks[x][y];
 
@@ -218,10 +221,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     //     renderer.DrawRect(brick.x, brick.y,
                     //                       brick.width, brick.height, 0,
                     //                       brick.colour[0], brick.colour[1], brick.colour[2]);
-
-                    if (brick.alive)
+                    static int aniFrame = 0;
+                    if (frameCount % 30 == 0) {
+                        aniFrame = (aniFrame == 0) ? 1 : 0;
+                    }
+                    // if (brick.alive)
                         renderer.DrawGameTextureRect(brick.x, brick.y, brick.width, brick.height, 0,
-                                                     -1.0f, 1.0f, 1.0f/3.0f, 1.0f/3.0f);
+                                                     (2.0f/64.0f)+(16.0f/64.0f)*aniFrame, (4.0f/64.0f), 
+                                                     (14.0f/64.0f)+(16.0f/64.0f)*aniFrame, (12.0f/64.0f));
                 }
             }
 

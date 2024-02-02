@@ -150,16 +150,19 @@ public:
         fontConstantBufferData.scale[1] = 1.0f;
     }
 
+
+    //TODO: Arguments for this: pass in two points to crop the image
+    // store knowledge of the game texture and just allow pixel positions to be passed
     void DrawGameTextureRect(float x = 0, float y = 0, float w = 1, float h = 1, float theta = 0,
-                             float uvX = 0, float uvY = 0, float uvScaleX = 1, float uvScaleY = 1)
+                             float uvX1 = 0, float uvY1 = 0, float uvX2 = 1, float uvY2 = 1)
     {
         // TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
         fontConstantBufferData.offset[0] = x;
         fontConstantBufferData.offset[1] = y;
-        fontConstantBufferData.uvScale[0] = uvScaleX;
-        fontConstantBufferData.uvScale[1] = uvScaleY;
-        fontConstantBufferData.uvOffset[0] = uvX;
-        fontConstantBufferData.uvOffset[1] = uvY;
+        fontConstantBufferData.uvScale[0] = (uvX2-uvX1);
+        fontConstantBufferData.uvScale[1] = (uvY2-uvY1);
+        fontConstantBufferData.uvOffset[0] = uvX1;
+        fontConstantBufferData.uvOffset[1] = uvY1;
         fontConstantBufferData.scale[0] = w;
         fontConstantBufferData.scale[1] = h;
         fontConstantBufferData.rot = theta;
