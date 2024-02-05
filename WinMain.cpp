@@ -61,11 +61,18 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         else
         {
             // game code
+            // TODO: make enemies move
+            // destructible cover
+            // red UFO
+            // new sounds, fire, explosion, ufo sound, movement sound
+            // explode animation
+            // sprite for tank
+
             static float x1 = 0.0f;
             static float y1 = -0.8f;
             float paddleWidth = 0.1f;
             float paddleHeight = 0.025f;
-            float enemyDimScale = 0.2f;
+            float enemyDimScale = 0.15f;
             float enemyWidth = 1 * enemyDimScale;
             float enemyHeight = 1 * 8.0 / 12.0f * enemyDimScale;
 
@@ -96,7 +103,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 unsigned int index;
                 bool alive = true;
                 unsigned char points = 1;
-                
+
                 sprite_animation anim = {};
             };
 
@@ -198,6 +205,90 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 bool active = false;
             } ball;
 
+            static int enemyAdvanceRate = 60;
+            static float xEnemyShift = enemies[0][0].width / 3.0f;
+            static bool shiftX = true;
+            static float yEnemyShift = 0.0f;
+            bool shiftEnemiesThisFrame = false;
+            static int aniFrame = 0;
+            if (frameCount % enemyAdvanceRate == 0)
+            {
+                aniFrame = (aniFrame == 0) ? 1 : 0;
+
+                // find furthest alive enemy
+                //  if that guy reaches end of screen, then shift down and reverse direction
+                float leftmostX = 0.0f;
+                float rightmostX = 0.0f;
+                for (int x = 0; x < numenemysW; ++x)
+                {
+                    enemy_info e = enemies[x][0];
+                    if (!e.alive)
+                    {
+                        for (int y = 0; y < numenemysH; ++y)
+                        {
+                            enemy_info e2 = enemies[x][y];
+                            if (e2.alive)
+                            {
+                                if (e2.x < leftmostX)
+                                {
+                                    leftmostX = e2.x;
+                                }
+                                if (e2.x > rightmostX)
+                                {
+                                    rightmostX = e2.x;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (e.x < leftmostX)
+                        {
+                            leftmostX = e.x;
+                        }
+                        if (e.x > rightmostX)
+                        {
+                            rightmostX = e.x;
+                        }
+                    }
+                }
+                if ((rightmostX >= 1.0f || leftmostX <= -1.0f) && yEnemyShift == 0)
+                {
+                    yEnemyShift = -enemies[0][0].height;
+                    xEnemyShift *= -1;
+                    enemyAdvanceRate = enemyAdvanceRate - 10;
+                    if (enemyAdvanceRate <= 0)
+                        enemyAdvanceRate = 5;
+                }
+                else
+                {
+                    yEnemyShift = 0;
+                }
+                shiftEnemiesThisFrame = true;
+            }
+            if (shiftEnemiesThisFrame)
+            {
+                shiftEnemiesThisFrame = false;
+
+                for (int x = 0; x < numenemysW; ++x)
+                {
+                    for (int y = 0; y < numenemysH; ++y)
+                    {
+                        if (yEnemyShift == 0.0f)
+                            enemies[x][y].x += xEnemyShift;
+                        enemies[x][y].y += yEnemyShift;
+
+                        if (enemies[x][y].y <= y1 && enemies[x][y].alive)
+                        {
+                            // GAME OVER
+                            enemyInit = false;
+                            enemyAdvanceRate = 60;
+                        }
+                    }
+                }
+            }
+
             static unsigned int score = 0;
 
             static float speed = 2.5f;
@@ -263,18 +354,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             if (ball.active)
                 renderer.DrawRect(ball.x, ball.y, ball.w, ball.h);
 
-            static int aniFrame = 0;
-            if (frameCount % 60 == 0)
-            {
-                aniFrame = (aniFrame == 0) ? 1 : 0;
-            }
             for (int x = 0; x < numenemysW; ++x)
             {
                 for (int y = 0; y < numenemysH; ++y)
                 {
                     enemy_info enemy = enemies[x][y];
                     if (enemy.alive)
-                    {                        
+                    {
                         int x1, y1, x2, y2;
                         x1 = enemy.anim.frames[aniFrame].point[0].x;
                         y1 = enemy.anim.frames[aniFrame].point[0].y;

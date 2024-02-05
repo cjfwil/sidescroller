@@ -275,7 +275,7 @@ public:
         gameTexture = LoadTexture("assets/space_invaders.png");        
 
         D3D11_SAMPLER_DESC samplerDesc = {};
-        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; //linear is for allowing sub pixel sampling (to come, need alpha blending first)
+        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT; //linear is for allowing sub pixel sampling (to come, need alpha blending first)
         samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
