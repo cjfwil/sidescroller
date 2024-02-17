@@ -72,7 +72,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static float y1 = -0.8f;
             float paddleWidth = 0.1f;
             float paddleHeight = 0.025f;
-            float enemyDimScale = 0.15f;
+            float enemyDimScale = 0.18f;
             float enemyWidth = 1 * enemyDimScale;
             float enemyHeight = 1 * 8.0 / 12.0f * enemyDimScale;
 
@@ -110,6 +110,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static const int numenemysW = 11;
             static const int numenemysH = 5;
             static enemy_info enemies[numenemysW][numenemysH] = {};
+
+            float screenEdge = 4 / 3.0f;
 
             static bool enemyInit = false;
             if (!enemyInit)
@@ -184,14 +186,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             if (GetAsyncKeyState('D') & 0x8000)
             {
                 x1 += 1.0f / 60;
-                if (x1 > 1.0f)
-                    x1 = 1;
+                if (x1 > screenEdge)
+                    x1 = screenEdge;
             }
             if (GetAsyncKeyState('A') & 0x8000)
             {
                 x1 -= 1.0f / 60;
-                if (x1 < -1.0f)
-                    x1 = -1;
+                if (x1 < -screenEdge)
+                    x1 = -screenEdge;
             }
 
             static struct projectile
@@ -206,7 +208,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             } ball;
 
             static int enemyAdvanceRate = 60;
-            static float xEnemyShift = enemies[0][0].width / 3.0f;
+            static float xEnemyShift = enemies[0][0].width / 8.0f;
             static bool shiftX = true;
             static float yEnemyShift = 0.0f;
             bool shiftEnemiesThisFrame = false;
@@ -253,7 +255,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         }
                     }
                 }
-                if ((rightmostX >= 1.0f || leftmostX <= -1.0f) && yEnemyShift == 0)
+                if ((rightmostX >= screenEdge-enemies[0][0].width/2 || leftmostX <= -screenEdge+enemies[0][0].width/2   ) && yEnemyShift == 0)
                 {
                     yEnemyShift = -enemies[0][0].height;
                     xEnemyShift *= -1;
@@ -302,7 +304,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 ball.y += ball.trajY / 60 * speed;
 
                 if (AABBTest(ball.x, ball.y, ball.w, ball.h,
-                             0, 0, 2, 2)) // test ball against screen
+                             0, 0, 2 * screenEdge, 2)) // test ball against screen
                 {
                     for (int x = 0; x < numenemysW; ++x)
                     {
@@ -353,6 +355,26 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
             if (ball.active)
                 renderer.DrawRect(ball.x, ball.y, ball.w, ball.h);
+
+            float shieldW = (enemyDimScale * 0.5f) * 0.75f;
+
+            for (int i = 0; i < 4; ++i)
+            {
+                float shieldX = i / 2.0f - screenEdge / 2 - shieldW * 3;
+                float shieldY = -0.5f;
+                renderer.DrawGameTextureRect(shieldX, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                renderer.DrawGameTextureRect(shieldX + shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                renderer.DrawGameTextureRect(shieldX + shieldW, shieldY + shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                renderer.DrawGameTextureRect(shieldX, shieldY - shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY + shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY - shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                renderer.DrawGameTextureRect(shieldX, shieldY + shieldW, shieldW, shieldW, 0, 48, 38, 48 + 6, 38 + 6);
+                renderer.DrawGameTextureRect(shieldX + shieldW, shieldY - shieldW, shieldW, shieldW, 0, 54, 38, 54 + 6, 38 + 6);
+                renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY + shieldW, shieldW, shieldW, 0, 43, 38, 43 + 6, 38 + 6);
+                renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY - shieldW, shieldW, shieldW, 0, 58, 38, 58 + 6, 38 + 6);
+            }
 
             for (int x = 0; x < numenemysW; ++x)
             {
