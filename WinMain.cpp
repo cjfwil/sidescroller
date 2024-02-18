@@ -61,12 +61,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         else
         {
             // game code
-            // TODO: make enemies move
-            // destructible cover
+            // TODO:
+            // destructible cover (4 states of partial destruction)
             // red UFO
             // new sounds, fire, explosion, ufo sound, movement sound
-            // explode animation
+            // explode animation on death
             // sprite for tank
+            // enemies shoot down projectiles
 
             static float x1 = 0.0f;
             static float y1 = -0.8f;
@@ -88,11 +89,15 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             };
 
             // we define a sprite animation as just a series of rectangles and a framerate
+            static const int spriteAnimMaxFrames = 64;
             struct sprite_animation
             {
-                int frameRate = 60;
-                clip_rect frames[2]; // right now only need 2 frames of animation
+                // int frameRate = 60;
+                int numFrames = 0;
+                clip_rect frames[spriteAnimMaxFrames];
             };
+
+            float screenEdge = 4 / 3.0f;
 
             struct enemy_info
             {
@@ -107,11 +112,126 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 sprite_animation anim = {};
             };
 
+            static enemy_info shields[4][3 * 4] = {};
+
+            static bool shieldInit = false;
+            if (!shieldInit)
+            {
+                float shieldW = (enemyDimScale * 0.5f) * 0.75f;
+
+                sprite_animation mainBlock = {};
+                mainBlock.numFrames = 4;
+                (mainBlock.frames[0]).point[0].x = 48;
+                (mainBlock.frames[0]).point[0].y = 32;
+                (mainBlock.frames[0]).point[1].x = 48 + 6;
+                (mainBlock.frames[0]).point[1].y = 32 + 6;
+                sprite_animation nwFacingSlope = {};
+                nwFacingSlope.numFrames = 4;
+                nwFacingSlope.frames[0].point[0].x = 48;
+                nwFacingSlope.frames[0].point[0].y = 38;
+                nwFacingSlope.frames[0].point[1].x = 48 + 6;
+                nwFacingSlope.frames[0].point[1].y = 38 + 6;
+                sprite_animation neFacingSlope = {};
+                neFacingSlope.numFrames = 4;
+                neFacingSlope.frames[0].point[0].x = 54;
+                neFacingSlope.frames[0].point[0].y = 38;
+                neFacingSlope.frames[0].point[1].x = 54 + 6;
+                neFacingSlope.frames[0].point[1].y = 38 + 6;
+                sprite_animation swFacingSlope = {};
+                swFacingSlope.numFrames = 4;
+                swFacingSlope.frames[0].point[0].x = 43;
+                swFacingSlope.frames[0].point[0].y = 38;
+                swFacingSlope.frames[0].point[1].x = 43 + 6;
+                swFacingSlope.frames[0].point[1].y = 38 + 6;
+                sprite_animation seFacingSlope = {};
+                seFacingSlope.numFrames = 4;
+                seFacingSlope.frames[0].point[0].x = 58;
+                seFacingSlope.frames[0].point[0].y = 38;
+                seFacingSlope.frames[0].point[1].x = 58 + 6;
+                seFacingSlope.frames[0].point[1].y = 38 + 6;
+
+                for (int i = 0; i < 4; ++i)
+                {
+                    float shieldX = i / 2.0f - screenEdge / 2 - shieldW * 3;
+                    float shieldY = -0.5f;
+
+                    shields[i][0].x = shieldX;
+                    shields[i][0].y = shieldY;
+                    shields[i][0].width = shieldW;
+                    shields[i][0].height = shieldW;
+                    shields[i][0].anim = mainBlock;
+
+                    shields[i][1].x = shieldX + shieldW;
+                    shields[i][1].y = shieldY;
+                    shields[i][1].width = shieldW;
+                    shields[i][1].height = shieldW;
+                    shields[i][1].anim = mainBlock;
+
+                    shields[i][2].x = shieldX + shieldW;
+                    shields[i][2].y = shieldY + shieldW;
+                    shields[i][2].width = shieldW;
+                    shields[i][2].height = shieldW;
+                    shields[i][2].anim = mainBlock;
+
+                    shields[i][3].x = shieldX;
+                    shields[i][3].y = shieldY - shieldW;
+                    shields[i][3].width = shieldW;
+                    shields[i][3].height = shieldW;
+                    shields[i][3].anim = mainBlock;
+
+                    shields[i][4].x = shieldX + 2 * shieldW;
+                    shields[i][4].y = shieldY;
+                    shields[i][4].width = shieldW;
+                    shields[i][4].height = shieldW;
+                    shields[i][4].anim = mainBlock;
+
+                    shields[i][5].x = shieldX + 2 * shieldW;
+                    shields[i][5].y = shieldY + shieldW;
+                    shields[i][5].width = shieldW;
+                    shields[i][5].height = shieldW;
+                    shields[i][5].anim = mainBlock;
+
+                    shields[i][6].x = shieldX + 3 * shieldW;
+                    shields[i][6].y = shieldY - shieldW;
+                    shields[i][6].width = shieldW;
+                    shields[i][6].height = shieldW;
+                    shields[i][6].anim = mainBlock;
+
+                    shields[i][7].x = shieldX + 3 * shieldW;
+                    shields[i][7].y = shieldY;
+                    shields[i][7].width = shieldW;
+                    shields[i][7].height = shieldW;
+                    shields[i][7].anim = mainBlock;
+
+                    shields[i][8].x = shieldX;
+                    shields[i][8].y = shieldY + shieldW;
+                    shields[i][8].width = shieldW;
+                    shields[i][8].height = shieldW;
+                    shields[i][8].anim = nwFacingSlope;
+
+                    shields[i][9].x = shieldX + shieldW;
+                    shields[i][9].y = shieldY - shieldW;
+                    shields[i][9].width = shieldW;
+                    shields[i][9].height = shieldW;
+                    shields[i][9].anim = neFacingSlope;
+
+                    shields[i][10].x = shieldX + 3 * shieldW;
+                    shields[i][10].y = shieldY + shieldW;
+                    shields[i][10].width = shieldW;
+                    shields[i][10].height = shieldW;
+                    shields[i][10].anim = swFacingSlope;
+
+                    shields[i][11].x = shieldX + 2 * shieldW;
+                    shields[i][11].y = shieldY - shieldW;
+                    shields[i][11].width = shieldW;
+                    shields[i][11].height = shieldW;
+                    shields[i][11].anim = seFacingSlope;
+                }
+            }
+
             static const int numenemysW = 11;
             static const int numenemysH = 5;
             static enemy_info enemies[numenemysW][numenemysH] = {};
-
-            float screenEdge = 4 / 3.0f;
 
             static bool enemyInit = false;
             if (!enemyInit)
@@ -158,6 +278,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                             y2 = y1 + 8;
                         }
 
+                        b.anim.numFrames = 2;
                         b.anim.frames[0].point[0].x = x1;
                         b.anim.frames[0].point[0].y = y1;
 
@@ -174,10 +295,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         // b.height *= (y2-y1)/16.0f;
 
                         enemies[x][y] = b;
-
-                        // // renderer.DrawGameTextureRect(enemy.x, enemy.y, enemy.width, enemy.height, 0,
-                        //                              x1 + 16 * aniFrame, y1,
-                        //                              x2 + 16 * aniFrame, y2);
                     }
                 }
                 enemyInit = true;
@@ -200,7 +317,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 float x;
                 float y;
-                float w = 0.025f;
+                float w = 0.015f;
                 float h = w * 3;
                 float trajX = 0;
                 float trajY = 1.0f / 1.414f;
@@ -255,7 +372,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         }
                     }
                 }
-                if ((rightmostX >= screenEdge-enemies[0][0].width/2 || leftmostX <= -screenEdge+enemies[0][0].width/2   ) && yEnemyShift == 0)
+                if ((rightmostX >= screenEdge - enemies[0][0].width / 2 || leftmostX <= -screenEdge + enemies[0][0].width / 2) && yEnemyShift == 0)
                 {
                     yEnemyShift = -enemies[0][0].height;
                     xEnemyShift *= -1;
@@ -323,6 +440,22 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                             }
                         }
                     }
+
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        for (int j = 0; j < 3 * 4; ++j)
+                        {
+                            enemy_info s = shields[i][j];
+                            bool result = AABBTest(ball.x, ball.y, ball.w, ball.h,
+                                                   s.x, s.y, s.width, s.height);
+                            if (s.alive && result)
+                            {
+                                shields[i][j].alive = false;
+                                hit = true;
+                                ball.active = false;
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -360,20 +493,35 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             for (int i = 0; i < 4; ++i)
             {
-                float shieldX = i / 2.0f - screenEdge / 2 - shieldW * 3;
-                float shieldY = -0.5f;
-                renderer.DrawGameTextureRect(shieldX, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                renderer.DrawGameTextureRect(shieldX + shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                renderer.DrawGameTextureRect(shieldX + shieldW, shieldY + shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                renderer.DrawGameTextureRect(shieldX, shieldY - shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY + shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY - shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                renderer.DrawGameTextureRect(shieldX, shieldY + shieldW, shieldW, shieldW, 0, 48, 38, 48 + 6, 38 + 6);
-                renderer.DrawGameTextureRect(shieldX + shieldW, shieldY - shieldW, shieldW, shieldW, 0, 54, 38, 54 + 6, 38 + 6);
-                renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY + shieldW, shieldW, shieldW, 0, 43, 38, 43 + 6, 38 + 6);
-                renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY - shieldW, shieldW, shieldW, 0, 58, 38, 58 + 6, 38 + 6);
+                for (int j = 0; j < 3 * 4; ++j)
+                {
+                    enemy_info shield = shields[i][j];
+
+                    if (shield.alive)
+                    {
+                        sprite_animation anim = shield.anim;
+                        clip_rect currentFrame = anim.frames[0];
+
+                        renderer.DrawGameTextureRect(shield.x, shield.y, shield.width, shield.height, 0,
+                                                     currentFrame.point[0].x, currentFrame.point[0].y,
+                                                     currentFrame.point[1].x, currentFrame.point[1].y);
+                    }
+
+                    // float shieldX = i / 2.0f - screenEdge / 2 - shieldW * 3;
+                    // float shieldY = -0.5f;
+                    // renderer.DrawGameTextureRect(shieldX, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                    // renderer.DrawGameTextureRect(shieldX + shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                    // renderer.DrawGameTextureRect(shieldX + shieldW, shieldY + shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                    // renderer.DrawGameTextureRect(shieldX, shieldY - shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                    // renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                    // renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY + shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                    // renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY - shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                    // renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
+                    // renderer.DrawGameTextureRect(shieldX, shieldY + shieldW, shieldW, shieldW, 0, 48, 38, 48 + 6, 38 + 6);
+                    // renderer.DrawGameTextureRect(shieldX + shieldW, shieldY - shieldW, shieldW, shieldW, 0, 54, 38, 54 + 6, 38 + 6);
+                    // renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY + shieldW, shieldW, shieldW, 0, 43, 38, 43 + 6, 38 + 6);
+                    // renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY - shieldW, shieldW, shieldW, 0, 58, 38, 58 + 6, 38 + 6);
+                }
             }
 
             for (int x = 0; x < numenemysW; ++x)
