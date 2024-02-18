@@ -127,28 +127,28 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 (mainBlock.frames[0]).point[1].y = 32 + 6;
                 sprite_animation nwFacingSlope = {};
                 nwFacingSlope.numFrames = 4;
-                nwFacingSlope.frames[0].point[0].x = 48;
+                nwFacingSlope.frames[0].point[0].x = 48;    
                 nwFacingSlope.frames[0].point[0].y = 38;
                 nwFacingSlope.frames[0].point[1].x = 48 + 6;
                 nwFacingSlope.frames[0].point[1].y = 38 + 6;
+                sprite_animation seFacingSlope = {};
+                seFacingSlope.numFrames = 4;
+                seFacingSlope.frames[0].point[0].x = 54;
+                seFacingSlope.frames[0].point[0].y = 38;
+                seFacingSlope.frames[0].point[1].x = 54 + 6;
+                seFacingSlope.frames[0].point[1].y = 38 + 6;
                 sprite_animation neFacingSlope = {};
                 neFacingSlope.numFrames = 4;
-                neFacingSlope.frames[0].point[0].x = 54;
+                neFacingSlope.frames[0].point[0].x = 42;
                 neFacingSlope.frames[0].point[0].y = 38;
-                neFacingSlope.frames[0].point[1].x = 54 + 6;
+                neFacingSlope.frames[0].point[1].x = 42 + 6;
                 neFacingSlope.frames[0].point[1].y = 38 + 6;
                 sprite_animation swFacingSlope = {};
                 swFacingSlope.numFrames = 4;
-                swFacingSlope.frames[0].point[0].x = 43;
+                swFacingSlope.frames[0].point[0].x = 60;
                 swFacingSlope.frames[0].point[0].y = 38;
-                swFacingSlope.frames[0].point[1].x = 43 + 6;
+                swFacingSlope.frames[0].point[1].x = 60 + 6;
                 swFacingSlope.frames[0].point[1].y = 38 + 6;
-                sprite_animation seFacingSlope = {};
-                seFacingSlope.numFrames = 4;
-                seFacingSlope.frames[0].point[0].x = 58;
-                seFacingSlope.frames[0].point[0].y = 38;
-                seFacingSlope.frames[0].point[1].x = 58 + 6;
-                seFacingSlope.frames[0].point[1].y = 38 + 6;
 
                 for (int i = 0; i < 4; ++i)
                 {
@@ -213,19 +213,19 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     shields[i][9].y = shieldY - shieldW;
                     shields[i][9].width = shieldW;
                     shields[i][9].height = shieldW;
-                    shields[i][9].anim = neFacingSlope;
+                    shields[i][9].anim = seFacingSlope;
 
                     shields[i][10].x = shieldX + 3 * shieldW;
                     shields[i][10].y = shieldY + shieldW;
                     shields[i][10].width = shieldW;
                     shields[i][10].height = shieldW;
-                    shields[i][10].anim = swFacingSlope;
+                    shields[i][10].anim = neFacingSlope;
 
                     shields[i][11].x = shieldX + 2 * shieldW;
                     shields[i][11].y = shieldY - shieldW;
                     shields[i][11].width = shieldW;
                     shields[i][11].height = shieldW;
-                    shields[i][11].anim = seFacingSlope;
+                    shields[i][11].anim = swFacingSlope;
                 }
             }
 
@@ -505,22 +505,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         renderer.DrawGameTextureRect(shield.x, shield.y, shield.width, shield.height, 0,
                                                      currentFrame.point[0].x, currentFrame.point[0].y,
                                                      currentFrame.point[1].x, currentFrame.point[1].y);
-                    }
-
-                    // float shieldX = i / 2.0f - screenEdge / 2 - shieldW * 3;
-                    // float shieldY = -0.5f;
-                    // renderer.DrawGameTextureRect(shieldX, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                    // renderer.DrawGameTextureRect(shieldX + shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                    // renderer.DrawGameTextureRect(shieldX + shieldW, shieldY + shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                    // renderer.DrawGameTextureRect(shieldX, shieldY - shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                    // renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                    // renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY + shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                    // renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY - shieldW, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                    // renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY, shieldW, shieldW, 0, 48, 32, 48 + 6, 32 + 6);
-                    // renderer.DrawGameTextureRect(shieldX, shieldY + shieldW, shieldW, shieldW, 0, 48, 38, 48 + 6, 38 + 6);
-                    // renderer.DrawGameTextureRect(shieldX + shieldW, shieldY - shieldW, shieldW, shieldW, 0, 54, 38, 54 + 6, 38 + 6);
-                    // renderer.DrawGameTextureRect(shieldX + 3 * shieldW, shieldY + shieldW, shieldW, shieldW, 0, 43, 38, 43 + 6, 38 + 6);
-                    // renderer.DrawGameTextureRect(shieldX + 2 * shieldW, shieldY - shieldW, shieldW, shieldW, 0, 58, 38, 58 + 6, 38 + 6);
+                    }                    
                 }
             }
 
