@@ -61,11 +61,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         else
         {
             // game code
-            // TODO:
-            // destructible cover (4 states of partial destruction)
+            // TODO:            
             // red UFO
-            // new sounds, fire, explosion, ufo sound, movement sound
-            // explode animation on death
+            // new sounds: fire, explosion, ufo sound, enemy movement sound
+            // enemy explode animation on death
             // sprite for tank
             // enemies shoot down projectiles
 
@@ -99,7 +98,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             float screenEdge = 4 / 3.0f;
 
-            struct enemy_info
+            struct entity_info
             {
                 float x;
                 float y;
@@ -107,12 +106,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 float height;
                 unsigned int index;
                 bool alive = true;
+                unsigned int health;
                 unsigned char points = 1;
 
                 sprite_animation anim = {};
             };
 
-            static enemy_info shields[4][3 * 4] = {};
+            static entity_info shields[4][3 * 4] = {};
 
             static bool shieldInit = false;
             if (!shieldInit)
@@ -125,12 +125,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 (mainBlock.frames[0]).point[0].y = 32;
                 (mainBlock.frames[0]).point[1].x = 48 + 6;
                 (mainBlock.frames[0]).point[1].y = 32 + 6;
+
                 sprite_animation nwFacingSlope = {};
                 nwFacingSlope.numFrames = 4;
-                nwFacingSlope.frames[0].point[0].x = 48;    
+                nwFacingSlope.frames[0].point[0].x = 48;
                 nwFacingSlope.frames[0].point[0].y = 38;
                 nwFacingSlope.frames[0].point[1].x = 48 + 6;
                 nwFacingSlope.frames[0].point[1].y = 38 + 6;
+
                 sprite_animation seFacingSlope = {};
                 seFacingSlope.numFrames = 4;
                 seFacingSlope.frames[0].point[0].x = 54;
@@ -149,6 +151,29 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 swFacingSlope.frames[0].point[0].y = 38;
                 swFacingSlope.frames[0].point[1].x = 60 + 6;
                 swFacingSlope.frames[0].point[1].y = 38 + 6;
+
+                for (int i = 1; i < 4; ++i)
+                {
+                    mainBlock.frames[i] = mainBlock.frames[0];
+                    mainBlock.frames[i].point[0].y = mainBlock.frames[0].point[0].y - 6*i;
+                    mainBlock.frames[i].point[1].y = mainBlock.frames[0].point[1].y - 6*i;
+
+                    nwFacingSlope.frames[i] = nwFacingSlope.frames[i-1];
+                    nwFacingSlope.frames[i].point[0].y = nwFacingSlope.frames[0].point[0].y - 6*i;
+                    nwFacingSlope.frames[i].point[1].y = nwFacingSlope.frames[0].point[1].y - 6*i;
+
+                    seFacingSlope.frames[i] = seFacingSlope.frames[i-1];
+                    seFacingSlope.frames[i].point[0].y = seFacingSlope.frames[0].point[0].y - 6*i;
+                    seFacingSlope.frames[i].point[1].y = seFacingSlope.frames[0].point[1].y - 6*i;
+
+                    neFacingSlope.frames[i] = neFacingSlope.frames[i-1];
+                    neFacingSlope.frames[i].point[0].y = neFacingSlope.frames[0].point[0].y - 6*i;
+                    neFacingSlope.frames[i].point[1].y = neFacingSlope.frames[0].point[1].y - 6*i;
+
+                    swFacingSlope.frames[i] = swFacingSlope.frames[i-1];
+                    swFacingSlope.frames[i].point[0].y = swFacingSlope.frames[0].point[0].y - 6*i;
+                    swFacingSlope.frames[i].point[1].y = swFacingSlope.frames[0].point[1].y - 6*i;
+                }
 
                 for (int i = 0; i < 4; ++i)
                 {
@@ -226,12 +251,19 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     shields[i][11].width = shieldW;
                     shields[i][11].height = shieldW;
                     shields[i][11].anim = swFacingSlope;
+
+                    for (int j = 0; j < 12; ++j)
+                    {
+                        shields[i][j].health = 4;
+                    }
                 }
+
+                shieldInit = true;
             }
 
             static const int numenemysW = 11;
             static const int numenemysH = 5;
-            static enemy_info enemies[numenemysW][numenemysH] = {};
+            static entity_info enemies[numenemysW][numenemysH] = {};
 
             static bool enemyInit = false;
             if (!enemyInit)
@@ -244,7 +276,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         unsigned int index = (y / 2);
 
                         float scaleFactor = 0.80f;
-                        enemy_info b;
+                        entity_info b;
                         b.width = enemyWidth;
                         b.height = enemyHeight;
                         b.x = x * b.width + b.width / 2.0f - 1.0f;
@@ -333,6 +365,16 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             if (frameCount % enemyAdvanceRate == 0)
             {
                 aniFrame = (aniFrame == 0) ? 1 : 0;
+                static unsigned int soundFramePitch = 0;
+                xa.Play(1.0f + soundFramePitch / 12.0f);
+                if (soundFramePitch >= 3)
+                {
+                    soundFramePitch = 0;
+                }
+                else
+                {
+                    soundFramePitch++;
+                }
 
                 // find furthest alive enemy
                 //  if that guy reaches end of screen, then shift down and reverse direction
@@ -340,12 +382,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 float rightmostX = 0.0f;
                 for (int x = 0; x < numenemysW; ++x)
                 {
-                    enemy_info e = enemies[x][0];
+                    entity_info e = enemies[x][0];
                     if (!e.alive)
                     {
                         for (int y = 0; y < numenemysH; ++y)
                         {
-                            enemy_info e2 = enemies[x][y];
+                            entity_info e2 = enemies[x][y];
                             if (e2.alive)
                             {
                                 if (e2.x < leftmostX)
@@ -427,7 +469,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     {
                         for (int y = 0; y < numenemysH; ++y)
                         {
-                            enemy_info b = enemies[x][y];
+                            entity_info b = enemies[x][y];
                             bool result = AABBTest(ball.x, ball.y, ball.w, ball.h,
                                                    b.x, b.y, b.width, b.height);
                             if (b.alive && result)
@@ -445,12 +487,16 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     {
                         for (int j = 0; j < 3 * 4; ++j)
                         {
-                            enemy_info s = shields[i][j];
+                            entity_info s = shields[i][j];
                             bool result = AABBTest(ball.x, ball.y, ball.w, ball.h,
                                                    s.x, s.y, s.width, s.height);
                             if (s.alive && result)
                             {
-                                shields[i][j].alive = false;
+                                shields[i][j].health--;
+                                if (shields[i][j].health <= 0)
+                                {
+                                    shields[i][j].alive = false;
+                                }
                                 hit = true;
                                 ball.active = false;
                             }
@@ -493,19 +539,19 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             for (int i = 0; i < 4; ++i)
             {
-                for (int j = 0; j < 3 * 4; ++j)
+                for (int j = 0; j < 12; ++j)
                 {
-                    enemy_info shield = shields[i][j];
+                    entity_info shield = shields[i][j];
 
                     if (shield.alive)
                     {
                         sprite_animation anim = shield.anim;
-                        clip_rect currentFrame = anim.frames[0];
+                        clip_rect currentFrame = anim.frames[4 - shield.health];
 
                         renderer.DrawGameTextureRect(shield.x, shield.y, shield.width, shield.height, 0,
                                                      currentFrame.point[0].x, currentFrame.point[0].y,
                                                      currentFrame.point[1].x, currentFrame.point[1].y);
-                    }                    
+                    }
                 }
             }
 
@@ -513,7 +559,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 for (int y = 0; y < numenemysH; ++y)
                 {
-                    enemy_info enemy = enemies[x][y];
+                    entity_info enemy = enemies[x][y];
                     if (enemy.alive)
                     {
                         int x1, y1, x2, y2;
