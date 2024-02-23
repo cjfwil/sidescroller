@@ -61,12 +61,19 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         else
         {
             // game code
-            // TODO:            
-            // red UFO
-            // new sounds: fire, explosion, ufo sound, enemy movement sound
+            // TODO:
+            // red UFO (every 30 seconds it appears at top of screen)
+            // new sounds: need to support multiple loaded sounds
             // enemy explode animation on death
-            // sprite for tank
             // enemies shoot down projectiles
+            // ^^^ need to turn projectile code into supporting multiple projectiles
+
+            // assets req
+            //  red ufo
+            //  bullets ?
+            //  new sounds: fire, explosion, ufo sound, enemy movement sound
+            //  explode
+            //  tank
 
             static float x1 = 0.0f;
             static float y1 = -0.8f;
@@ -114,6 +121,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             static entity_info shields[4][3 * 4] = {};
 
+            static entity_info ufo = {};
+            ufo.height = 8 / 17.0f * enemyDimScale;
+            ufo.width = 1 * enemyDimScale;
+
             static bool shieldInit = false;
             if (!shieldInit)
             {
@@ -155,24 +166,24 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 for (int i = 1; i < 4; ++i)
                 {
                     mainBlock.frames[i] = mainBlock.frames[0];
-                    mainBlock.frames[i].point[0].y = mainBlock.frames[0].point[0].y - 6*i;
-                    mainBlock.frames[i].point[1].y = mainBlock.frames[0].point[1].y - 6*i;
+                    mainBlock.frames[i].point[0].y = mainBlock.frames[0].point[0].y - 6 * i;
+                    mainBlock.frames[i].point[1].y = mainBlock.frames[0].point[1].y - 6 * i;
 
-                    nwFacingSlope.frames[i] = nwFacingSlope.frames[i-1];
-                    nwFacingSlope.frames[i].point[0].y = nwFacingSlope.frames[0].point[0].y - 6*i;
-                    nwFacingSlope.frames[i].point[1].y = nwFacingSlope.frames[0].point[1].y - 6*i;
+                    nwFacingSlope.frames[i] = nwFacingSlope.frames[i - 1];
+                    nwFacingSlope.frames[i].point[0].y = nwFacingSlope.frames[0].point[0].y - 6 * i;
+                    nwFacingSlope.frames[i].point[1].y = nwFacingSlope.frames[0].point[1].y - 6 * i;
 
-                    seFacingSlope.frames[i] = seFacingSlope.frames[i-1];
-                    seFacingSlope.frames[i].point[0].y = seFacingSlope.frames[0].point[0].y - 6*i;
-                    seFacingSlope.frames[i].point[1].y = seFacingSlope.frames[0].point[1].y - 6*i;
+                    seFacingSlope.frames[i] = seFacingSlope.frames[i - 1];
+                    seFacingSlope.frames[i].point[0].y = seFacingSlope.frames[0].point[0].y - 6 * i;
+                    seFacingSlope.frames[i].point[1].y = seFacingSlope.frames[0].point[1].y - 6 * i;
 
-                    neFacingSlope.frames[i] = neFacingSlope.frames[i-1];
-                    neFacingSlope.frames[i].point[0].y = neFacingSlope.frames[0].point[0].y - 6*i;
-                    neFacingSlope.frames[i].point[1].y = neFacingSlope.frames[0].point[1].y - 6*i;
+                    neFacingSlope.frames[i] = neFacingSlope.frames[i - 1];
+                    neFacingSlope.frames[i].point[0].y = neFacingSlope.frames[0].point[0].y - 6 * i;
+                    neFacingSlope.frames[i].point[1].y = neFacingSlope.frames[0].point[1].y - 6 * i;
 
-                    swFacingSlope.frames[i] = swFacingSlope.frames[i-1];
-                    swFacingSlope.frames[i].point[0].y = swFacingSlope.frames[0].point[0].y - 6*i;
-                    swFacingSlope.frames[i].point[1].y = swFacingSlope.frames[0].point[1].y - 6*i;
+                    swFacingSlope.frames[i] = swFacingSlope.frames[i - 1];
+                    swFacingSlope.frames[i].point[0].y = swFacingSlope.frames[0].point[0].y - 6 * i;
+                    swFacingSlope.frames[i].point[1].y = swFacingSlope.frames[0].point[1].y - 6 * i;
                 }
 
                 for (int i = 0; i < 4; ++i)
@@ -345,7 +356,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     x1 = -screenEdge;
             }
 
-            static struct projectile
+            struct projectile
             {
                 float x;
                 float y;
@@ -354,7 +365,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 float trajX = 0;
                 float trajY = 1.0f / 1.414f;
                 bool active = false;
-            } ball;
+            };
+
+            static projectile playerProjectile;
+            static projectile enemyProjectile;
+
+            static bool gameOver = false;
 
             static int enemyAdvanceRate = 60;
             static float xEnemyShift = enemies[0][0].width / 8.0f;
@@ -442,35 +458,81 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
                         if (enemies[x][y].y <= y1 && enemies[x][y].alive)
                         {
-                            // GAME OVER
-                            enemyInit = false;
-                            enemyAdvanceRate = 60;
+                            gameOver = true;
                         }
                     }
                 }
             }
 
-            static unsigned int score = 0;
+            if (gameOver)
+            {
+                // GAME OVER
+                enemyInit = false;
+                enemyAdvanceRate = 60;
+                gameOver = false;
+            }
+
+            int enemyFireRate = 1; // every enemyFireRate seconds, fire a bolt from a random enemy
+            if (frameCount % (enemyFireRate * 60) == 0 && frameCount != 0)
+            {
+                entity_info e = enemies[rand() % numenemysW][rand() % numenemysH];
+                if (e.alive)
+                {
+                    enemyProjectile.x = e.x;
+                    enemyProjectile.y = e.y;
+                    enemyProjectile.active = true;
+                    enemyProjectile.trajX = 0;
+                    enemyProjectile.trajY = -1;
+                    enemyProjectile.w = playerProjectile.w;
+                    enemyProjectile.h = playerProjectile.h;
+                }
+            }
+
+            int ufoAppearRate = 30; // every 30 seconds
+            // TODO instead of 60 fps allow arbitrary framerates taking in deltatime
+            if (frameCount % (ufoAppearRate * 60) == 0 && frameCount != 0)
+            {
+                ufo.alive = true;
+                ufo.x = screenEdge + ufo.width / 2;
+                ufo.y = 1 - ufo.height;
+            }
+            else if (frameCount == 0)
+            {
+                ufo.alive = false;
+            }
+
+            // simulate ufo
+            if (ufo.alive)
+            {
+                ufo.x += -1.0f / 60 * (1 / 5.0f);
+
+                if (ufo.x < -screenEdge)
+                {
+                    ufo.alive = false;
+                }
+            }
+
+            static int score = 0;
 
             static float speed = 2.5f;
 
             float soundFreq = speed * 0.4f;
             bool hit = false;
 
-            if (ball.active)
+            if (playerProjectile.active)
             {
-                ball.x += ball.trajX / 60 * speed;
-                ball.y += ball.trajY / 60 * speed;
+                playerProjectile.x += playerProjectile.trajX / 60 * speed;
+                playerProjectile.y += playerProjectile.trajY / 60 * speed;
 
-                if (AABBTest(ball.x, ball.y, ball.w, ball.h,
-                             0, 0, 2 * screenEdge, 2)) // test ball against screen
+                if (AABBTest(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h,
+                             0, 0, 2 * screenEdge, 2)) // test playerProjectile against screen
                 {
                     for (int x = 0; x < numenemysW; ++x)
                     {
                         for (int y = 0; y < numenemysH; ++y)
                         {
                             entity_info b = enemies[x][y];
-                            bool result = AABBTest(ball.x, ball.y, ball.w, ball.h,
+                            bool result = AABBTest(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h,
                                                    b.x, b.y, b.width, b.height);
                             if (b.alive && result)
                             {
@@ -478,7 +540,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                                 soundFreq = speed + (b.points / 100.f);
                                 enemies[x][y].alive = false;
                                 hit = true;
-                                ball.active = false;
+                                playerProjectile.active = false;
                             }
                         }
                     }
@@ -488,7 +550,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         for (int j = 0; j < 3 * 4; ++j)
                         {
                             entity_info s = shields[i][j];
-                            bool result = AABBTest(ball.x, ball.y, ball.w, ball.h,
+                            bool result = AABBTest(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h,
                                                    s.x, s.y, s.width, s.height);
                             if (s.alive && result)
                             {
@@ -498,26 +560,84 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                                     shields[i][j].alive = false;
                                 }
                                 hit = true;
-                                ball.active = false;
+                                playerProjectile.active = false;
                             }
                         }
+                    }
+
+                    if (ufo.alive && AABBTest(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h,
+                                              ufo.x, ufo.y, ufo.width, ufo.height))
+                    {
+                        score+= 200;
+                        ufo.alive = false;
+                        hit = true;
                     }
                 }
                 else
                 {
-                    ball.active = false;
+                    playerProjectile.active = false;
                 }
             }
             else
             {
-                ball.x = x1;
-                ball.y = y1;
+                playerProjectile.x = x1;
+                playerProjectile.y = y1;
                 if (GetAsyncKeyState(VK_SPACE) & 0x8000)
                 {
                     xa.Play();
-                    ball.x = x1;
-                    ball.y = y1;
-                    ball.active = true;
+                    playerProjectile.x = x1;
+                    playerProjectile.y = y1;
+                    playerProjectile.active = true;
+                }
+            }
+
+            if (enemyProjectile.active)
+            {
+                enemyProjectile.x += enemyProjectile.trajX / 60 * speed;
+                enemyProjectile.y += enemyProjectile.trajY / 60 * speed;
+                bool result = AABBTest(enemyProjectile.x, enemyProjectile.y, enemyProjectile.w, enemyProjectile.h,
+                                       x1, y1, paddleWidth, paddleHeight);
+                if (result)
+                {
+                    hit = true;
+                    score -= 50;
+                    enemyProjectile.active = false;
+                    if (score <= 0)
+                    {
+                        score = 0;
+                        gameOver = true;
+                    }
+                }
+                else if (!AABBTest(enemyProjectile.x, enemyProjectile.y, enemyProjectile.w, enemyProjectile.h,
+                                   0, 0, 2 * screenEdge, 2))
+                { // test enemyProjectile against screen
+                    enemyProjectile.active = false;
+                    enemyProjectile.x = 0;
+                    enemyProjectile.y = 0;
+                }
+                else
+                {
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        for (int j = 0; j < 12; ++j)
+                        {
+                            entity_info shield = shields[i][j];
+
+                            if (shield.alive && AABBTest(enemyProjectile.x, enemyProjectile.y, enemyProjectile.w, enemyProjectile.h,
+                                                         shield.x, shield.y, shield.width, shield.height))
+                            {
+                                shields[i][j].health--;
+                                // TODO this is repeating so pull this out into "simulate shields"
+                                if (shields[i][j].health <= 0)
+                                {
+                                    shields[i][j].alive = false;
+                                }
+                                hit = true;
+                                enemyProjectile.active = false;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
 
@@ -532,8 +652,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             texRenderConstantBufferData.view[0] = (float)window.height / (float)window.width;
             renderer.StartDraw(0.255f, 0.255f, 0.255f);
             renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
-            if (ball.active)
-                renderer.DrawRect(ball.x, ball.y, ball.w, ball.h);
+            if (playerProjectile.active)
+                renderer.DrawRect(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h);
+            if (enemyProjectile.active)
+                renderer.DrawRect(enemyProjectile.x, enemyProjectile.y, enemyProjectile.w, enemyProjectile.h);
+
+            if (ufo.alive)
+                renderer.DrawGameTextureRect(ufo.x, ufo.y, ufo.width, ufo.height, 0, 0, 127 - 8, 17, 127);
 
             float shieldW = (enemyDimScale * 0.5f) * 0.75f;
 
