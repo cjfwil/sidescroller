@@ -648,7 +648,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
             texRenderConstantBufferData.view[0] = (float)window.height / (float)window.width;
-            renderer.StartDraw(0.255f, 0.255f, 0.255f);
+            renderer.StartDraw(0.155f, 0.155f, 0.155f);
             renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
             if (playerProjectile.active)
                 renderer.DrawRect(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h);
