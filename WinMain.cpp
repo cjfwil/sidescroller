@@ -61,15 +61,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         else
         {
             // game code
-            // TODO:
-            // red UFO (every 30 seconds it appears at top of screen)
-            // new sounds: need to support multiple loaded sounds
+            // TODO:                        
             // enemy explode animation on death
             // enemies shoot down projectiles
             // ^^^ need to turn projectile code into supporting multiple projectiles
 
-            // assets req
-            //  red ufo
+            // assets req            
             //  bullets ?
             //  new sounds: fire, explosion, ufo sound, enemy movement sound
             //  explode
@@ -382,7 +379,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 aniFrame = (aniFrame == 0) ? 1 : 0;
                 static unsigned int soundFramePitch = 0;
-                xa.Play(1.0f + soundFramePitch / 12.0f);
+                xa.Play(2, 1.0f + soundFramePitch / 12.0f); // enemy move
                 if (soundFramePitch >= 3)
                 {
                     soundFramePitch = 0;
@@ -431,7 +428,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     }
                 }
                 if ((rightmostX >= screenEdge - enemies[0][0].width / 2 || leftmostX <= -screenEdge + enemies[0][0].width / 2) && yEnemyShift == 0)
-                {
+                {                    
                     yEnemyShift = -enemies[0][0].height;
                     xEnemyShift *= -1;
                     enemyAdvanceRate = enemyAdvanceRate - 10;
@@ -452,8 +449,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     for (int y = 0; y < numenemysH; ++y)
                     {
-                        if (yEnemyShift == 0.0f)
+                        if (yEnemyShift == 0.0f){                            
                             enemies[x][y].x += xEnemyShift;
+                        }
                         enemies[x][y].y += yEnemyShift;
 
                         if (enemies[x][y].y <= y1 && enemies[x][y].alive)
@@ -584,7 +582,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 playerProjectile.y = y1;
                 if (GetAsyncKeyState(VK_SPACE) & 0x8000)
                 {
-                    xa.Play();
+                    xa.Play(1, 1.0f);
                     playerProjectile.x = x1;
                     playerProjectile.y = y1;
                     playerProjectile.active = true;
@@ -643,7 +641,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             if (hit)
             {
-                xa.Play(soundFreq);
+                xa.Play(1, soundFreq);
                 hit = false;
             }
 

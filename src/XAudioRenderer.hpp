@@ -11,10 +11,12 @@ class XAudioRenderer
 {
 public:
     static const int numSourceVoices = 32;
+    static const int numLoadableSounds = 16;
     IXAudio2 *pXAudio2 = nullptr;
     IXAudio2SourceVoice *pSourceVoice[numSourceVoices];
     WAVEFORMATEXTENSIBLE wfx = {0};
-    XAUDIO2_BUFFER buffer = {0};
+    XAUDIO2_BUFFER buffers[numLoadableSounds] = {0};
+    unsigned int loadedSounds = 0;
 
     XAudioRenderer()
     {
@@ -25,7 +27,9 @@ public:
         IXAudio2MasteringVoice *pMasterVoice = nullptr;
         hr = pXAudio2->CreateMasteringVoice(&pMasterVoice);
 
-        hr = LoadSound();
+        hr = LoadSound(__TEXT("assets/bloop.wav"));
+        hr = LoadSound(__TEXT("assets/explode.wav"));
+        hr = LoadSound(__TEXT("assets/blung.wav"));
 
         // start xaudio
         for (int i = 0; i < numSourceVoices; ++i)
@@ -34,7 +38,7 @@ public:
         }
     }
 
-    void Play(float pitchChange = 1.0f)
+    void Play(unsigned int soundIndex=0, float pitchChange = 1.0f)
     {
         for (int i = 0; i < numSourceVoices; ++i)
         {
@@ -47,7 +51,7 @@ public:
                 pSourceVoice[i]->Stop(0);
                 pSourceVoice[i]->SetFrequencyRatio(pitchChange);
                 pSourceVoice[i]->FlushSourceBuffers();
-                pSourceVoice[i]->SubmitSourceBuffer(&buffer);
+                pSourceVoice[i]->SubmitSourceBuffer(&(buffers[soundIndex]));
                 pSourceVoice[i]->Start(0);
                 return;
             }
@@ -127,11 +131,11 @@ private:
         return hr;
     }
 
-    HRESULT LoadSound()
+    HRESULT LoadSound(TCHAR* soundPath)
     {
         // load sound
 
-        TCHAR *strFileName = __TEXT("assets/bloop.wav");
+        TCHAR *strFileName = soundPath;
         // Open the file
         HANDLE hFile = CreateFile(
             strFileName,
@@ -165,10 +169,11 @@ private:
         BYTE *pDataBuffer = new BYTE[dwChunkSize];
         ReadChunkData(hFile, pDataBuffer, dwChunkSize, dwChunkPosition);
 
-        buffer.AudioBytes = dwChunkSize;      // size of the audio buffer in bytes
-        buffer.pAudioData = pDataBuffer;      // buffer containing audio data
-        buffer.Flags = XAUDIO2_END_OF_STREAM; // tell the source voice not to expect any data after this buffer
+        buffers[loadedSounds].AudioBytes = dwChunkSize;      // size of the audio buffer in bytes
+        buffers[loadedSounds].pAudioData = pDataBuffer;      // buffer containing audio data
+        buffers[loadedSounds].Flags = XAUDIO2_END_OF_STREAM; // tell the source voice not to expect any data after this buffer
 
+        loadedSounds++;
         return S_OK;
     }
 };
