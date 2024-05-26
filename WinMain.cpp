@@ -127,6 +127,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 float shieldW = (enemyDimScale * 0.5f) * 0.75f;
 
+                // todo, helper functions for creating this data
                 sprite_animation mainBlock = {};
                 mainBlock.numFrames = 4;
                 (mainBlock.frames[0]).point[0].x = 48;
@@ -648,7 +649,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
             texRenderConstantBufferData.view[0] = (float)window.height / (float)window.width;
-            renderer.StartDraw(0.155f, 0.155f, 0.155f);
+            renderer.StartDraw(0,0,0);
             renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
             if (playerProjectile.active)
                 renderer.DrawRect(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h);

@@ -6,9 +6,10 @@ cbuffer view_info : register(b0)
     float2 uvOffset;
     float2 uvScale;
     float rot;    
+    float texSize;
 }
 
-Texture2D tex : register(t0);
+Texture2D tex : register(t0); 
 SamplerState samplerState : register(s0);
 
 struct ps_input {
@@ -33,7 +34,6 @@ ps_input vs_main(float2 pos: POSITION, float2 uv: TEXCOORD)
 
 float4 ps_main(ps_input input) : SV_TARGET
 {
-    float texSize = 128.0f;
     float texelsPerPixel = texSize/1024.0f;
     // float texelsPerPixel = 1024.0f/texSize;
     float2 locWithinTexel = frac(input.uv*texSize);

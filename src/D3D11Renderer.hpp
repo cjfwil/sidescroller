@@ -28,7 +28,7 @@ __declspec(align(16)) struct ConstantBufferStruct
     float colour[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     float offset[2] = {0, 0};
     float scale[2] = {1, 1};
-    float rot;
+    float rot;    
 } constantBufferData;
 static_assert((sizeof(ConstantBufferStruct) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
 
@@ -43,6 +43,7 @@ __declspec(align(16)) struct TexRenderConstantBufferStruct
     float uvOffset[2] = {0, 0};
     float uvScale[2] = {1, 1};
     float rot;
+    float texSize;
 } texRenderConstantBufferData;
 static_assert((sizeof(TexRenderConstantBufferStruct) % 16) == 0, "TexRenderConstantBufferStruct size must be 16-byte aligned");
 
@@ -132,6 +133,7 @@ public:
         texRenderConstantBufferData.scale[0] = w;
         texRenderConstantBufferData.scale[1] = h;
         texRenderConstantBufferData.rot = theta;
+        texRenderConstantBufferData.texSize = 50.0f;
 
         pContext->UpdateSubresource(m_pTexRenderConstantBuffer, 0, nullptr, &texRenderConstantBufferData, 0, 0);
 
@@ -176,6 +178,7 @@ public:
         texRenderConstantBufferData.scale[0] = w;
         texRenderConstantBufferData.scale[1] = h;
         texRenderConstantBufferData.rot = theta;
+        texRenderConstantBufferData.texSize = 128.0f;
 
         pContext->UpdateSubresource(m_pTexRenderConstantBuffer, 0, nullptr, &texRenderConstantBufferData, 0, 0);
 
@@ -282,8 +285,7 @@ public:
         samplerDesc.MipLODBias = 0.0f;
         samplerDesc.MinLOD = 0.0f;
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-
-        //TODO: ALPHA BLENDING
+        
         
         D3D11_BLEND_DESC blendDesc = {};
         blendDesc.RenderTarget[0].BlendEnable = TRUE;
