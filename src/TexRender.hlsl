@@ -34,7 +34,18 @@ ps_input vs_main(float2 pos: POSITION, float2 uv: TEXCOORD)
 float4 ps_main(ps_input input) : SV_TARGET
 {
     //todo I want proper sub pixel filtering here so pixel art looks good
-    float4 clr = tex.Sample(samplerState, input.uv);
-    clip(clr.a == 0 ? -1 : 1);    
+
+
+    float texSize = 128.0f;
+    float texelsPerPixel = 1024.0f/texSize;
+    float2 locWithinTexel = frac(input.uv*texSize);
+    
+    float2 interpAmount = clamp(locWithinTexel/texelsPerPixel, 0, 0.5f)+clamp((locWithinTexel-1)/texelsPerPixel+0.5f, 0, 0.5f);
+    float2 finalTexCoords = (floor(input.uv*texSize)+interpAmount)/texSize;
+
+    float4 clr = tex.Sample(samplerState, finalTexCoords);
+    // float4 clr = tex.Sample(samplerState, input.uv);
+
+    // clip(clr.a == 0 ? -1 : 1);    
     return (clr);
 }
