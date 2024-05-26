@@ -212,7 +212,8 @@ public:
         //     1.0f,
         //     0);
 
-        pContext->OMSetRenderTargets(1, &pRenderTarget, nullptr);
+        pContext->OMSetRenderTargets(1, &pRenderTarget, nullptr);        
+        pContext->OMSetBlendState(blendState, NULL, 0xFFFFFFFFu);
     }
 
     d3d_texture_info LoadTexture(char *path, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
@@ -283,8 +284,20 @@ public:
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
         //TODO: ALPHA BLENDING
+        
+        D3D11_BLEND_DESC blendDesc = {};
+        blendDesc.RenderTarget[0].BlendEnable = TRUE;
+        blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+        blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+        blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+        blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 
-        HRESULT hr = pDevice->CreateSamplerState(&samplerDesc, &samplerState);
+        HRESULT hr = pDevice->CreateBlendState(&blendDesc, &blendState);
+
+        hr = pDevice->CreateSamplerState(&samplerDesc, &samplerState);
         return(hr);
     }
 
@@ -292,6 +305,7 @@ private:
     d3d_texture_info fontTexture;
     d3d_texture_info gameTexture;
     ID3D11SamplerState *samplerState;
+    ID3D11BlendState* blendState;
 
     HRESULT CreateConstantBuffers()
     {
