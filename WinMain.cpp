@@ -37,7 +37,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     Win32Window &window = Win32Window::GetInstance();
 
     D3D11Renderer renderer = D3D11Renderer(window.hwnd);
-    renderer.LoadTextures();
+    renderer.LoadTextures(TRUE);
 
     XAudioRenderer xa = XAudioRenderer();
 
@@ -678,7 +678,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     }
                 }
             }
-
+            
             for (int x = 0; x < numenemysW; ++x)
             {
                 for (int y = 0; y < numenemysH; ++y)
@@ -691,7 +691,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         y1 = enemy.anim.frames[aniFrame].point[0].y;
                         x2 = enemy.anim.frames[aniFrame].point[1].x;
                         y2 = enemy.anim.frames[aniFrame].point[1].y;
-
+                        
                         renderer.DrawGameTextureRect(enemy.x, enemy.y, enemy.width, enemy.height, 0,
                                                      x1, y1, x2, y2);
                     }

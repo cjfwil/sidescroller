@@ -28,7 +28,7 @@ __declspec(align(16)) struct ConstantBufferStruct
     float colour[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     float offset[2] = {0, 0};
     float scale[2] = {1, 1};
-    float rot;    
+    float rot;
 } constantBufferData;
 static_assert((sizeof(ConstantBufferStruct) % 16) == 0, "Constant Buffer size must be 16-byte aligned");
 
@@ -164,17 +164,19 @@ public:
                              int uvX1 = 0, int uvY1 = 0, int uvX2 = 0, int uvY2 = 0)
     {
         // TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
-        float xScale = (uvX2 - uvX1)/(float)gameTexture.width;
-        float yScale = (uvY2 - uvY1)/(float)gameTexture.height;
-        if (uvX1 == uvX2) xScale = 1.0f;
-        if (uvY1 == uvY2) yScale = 1.0f;
+        float xScale = (uvX2 - uvX1) / (float)gameTexture.width;
+        float yScale = (uvY2 - uvY1) / (float)gameTexture.height;
+        if (uvX1 == uvX2)
+            xScale = 1.0f;
+        if (uvY1 == uvY2)
+            yScale = 1.0f;
 
         texRenderConstantBufferData.offset[0] = x;
         texRenderConstantBufferData.offset[1] = y;
         texRenderConstantBufferData.uvScale[0] = xScale;
         texRenderConstantBufferData.uvScale[1] = yScale;
-        texRenderConstantBufferData.uvOffset[0] = uvX1/(float)gameTexture.width;
-        texRenderConstantBufferData.uvOffset[1] = uvY1/(float)gameTexture.height;
+        texRenderConstantBufferData.uvOffset[0] = uvX1 / (float)gameTexture.width;
+        texRenderConstantBufferData.uvOffset[1] = uvY1 / (float)gameTexture.height;
         texRenderConstantBufferData.scale[0] = w;
         texRenderConstantBufferData.scale[1] = h;
         texRenderConstantBufferData.rot = theta;
@@ -215,13 +217,13 @@ public:
         //     1.0f,
         //     0);
 
-        pContext->OMSetRenderTargets(1, &pRenderTarget, nullptr);        
+        pContext->OMSetRenderTargets(1, &pRenderTarget, nullptr);
         pContext->OMSetBlendState(blendState, NULL, 0xFFFFFFFFu);
     }
 
     d3d_texture_info LoadTexture(char *path, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM)
     {
-        d3d_texture_info result;        
+        d3d_texture_info result;
         int texWidth, texHeight, n;
         int forcedN = 4;
         stbi_set_flip_vertically_on_load(1);
@@ -271,13 +273,13 @@ public:
         return (result);
     }
 
-    HRESULT LoadTextures()
+    HRESULT LoadTextures(BOOL enableAlphaBlend=FALSE)
     {
         fontTexture = LoadTexture("assets/bitmap_font.png");
-        gameTexture = LoadTexture("assets/space_invaders.png");        
+        gameTexture = LoadTexture("assets/space_invaders.png");
 
         D3D11_SAMPLER_DESC samplerDesc = {};
-        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; //linear is for allowing sub pixel sampling (to come, need alpha blending first)
+        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; // linear is for allowing sub pixel sampling (to come, need alpha blending first)
         samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -285,10 +287,9 @@ public:
         samplerDesc.MipLODBias = 0.0f;
         samplerDesc.MinLOD = 0.0f;
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-        
-        
-        D3D11_BLEND_DESC blendDesc = {};
-        blendDesc.RenderTarget[0].BlendEnable = TRUE;
+
+        D3D11_BLEND_DESC blendDesc = {};        
+        blendDesc.RenderTarget[0].BlendEnable = enableAlphaBlend;
         blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
         blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
         blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
@@ -300,14 +301,14 @@ public:
         HRESULT hr = pDevice->CreateBlendState(&blendDesc, &blendState);
 
         hr = pDevice->CreateSamplerState(&samplerDesc, &samplerState);
-        return(hr);
+        return (hr);
     }
 
 private:
     d3d_texture_info fontTexture;
     d3d_texture_info gameTexture;
     ID3D11SamplerState *samplerState;
-    ID3D11BlendState* blendState;
+    ID3D11BlendState *blendState;
 
     HRESULT CreateConstantBuffers()
     {
