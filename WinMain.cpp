@@ -706,6 +706,31 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             renderer.DrawFontRect(-1.05f - chW, 0.66667f, (score / 10) % 10, chW, chH);
             renderer.DrawFontRect(-1.05f - 2 * chW, 0.66667f, (score / 100) % 1000, chW, chH);
 
+            //framerate render
+            static LARGE_INTEGER freq;
+            QueryPerformanceFrequency(&freq);  //TODO: don't do this every frame
+            static LARGE_INTEGER perfCount, perfCountDifference;
+            LARGE_INTEGER lastPerfCount = perfCount;
+            QueryPerformanceCounter(&perfCount);
+            perfCountDifference.QuadPart = perfCount.QuadPart - lastPerfCount.QuadPart;
+            perfCountDifference.QuadPart *= 1000000;
+            perfCountDifference.QuadPart /= freq.QuadPart;
+
+
+            static unsigned int frameRate = 0;
+            static unsigned int lastFrameCount = 0;
+            if (frameCount - lastFrameCount > 20) { //only update framerate counter every 20 frames
+                frameRate = 1000000.0f/(float)(perfCountDifference.QuadPart);
+                lastFrameCount = frameCount;
+            }
+
+
+            
+            renderer.DrawFontRect(1.05f, 0.86667f, frameRate % 10, chW, chH);
+            renderer.DrawFontRect(1.05f - chW, 0.86667f, (frameRate / 10) % 10, chW, chH);
+            renderer.DrawFontRect(1.05f - 2 * chW, 0.86667f, (frameRate / 100) % 1000, chW, chH);                        
+
+
             frameCount++;
             renderer.pSwapChain->Present(1, 0);
         }
