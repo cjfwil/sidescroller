@@ -61,16 +61,23 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         else
         {
             // game code
-            // TODO:                        
+            // TODO:
             // enemy explode animation on death
             // enemies shoot down projectiles
             // ^^^ need to turn projectile code into supporting multiple projectiles
 
-            // assets req            
+            // assets req
             //  bullets ?
             //  new sounds: fire, explosion, ufo sound, enemy movement sound
             //  explode
             //  tank
+
+            static struct
+            {
+                float x;
+                float y;
+                float zoomLevel;
+            } main_camera;
 
             static float x1 = 0.0f;
             static float y1 = -0.8f;
@@ -270,6 +277,41 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 shieldInit = true;
             }
 
+            //setup tilemap data
+            struct tile_data
+            {
+                bool visible = true;
+                float r, g, b;
+            };
+
+            struct map_info
+            {
+                bool init = false;
+                float x = 0.0f, y = 0.0f;
+                float tileWidth = 1.0f;
+                tile_data data[32][32] = {};
+            };
+
+            static map_info map;
+            if (!map.init)
+            {
+                map.tileWidth = 0.1f;
+                for (int x = 0; x < 32; ++x)
+                {
+                    for (int y = 0; y < 32; ++y)
+                    {
+                        tile_data tile = {};
+                        // tile.visible = (x % 2 == 0) ^ (y % 2 == 0);
+                        // tile.visible = true;
+                        tile.r = (rand() % 256) / 255.0f;
+                        tile.g = (rand() % 256) / 255.0f;
+                        tile.b = (rand() % 256) / 255.0f;
+                        map.data[x][y] = tile;
+                    }
+                }
+                map.init = true;
+            }
+
             static const int numenemysW = 11;
             static const int numenemysH = 5;
             static entity_info enemies[numenemysW][numenemysH] = {};
@@ -341,17 +383,29 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 enemyInit = true;
             }
 
+            if (GetAsyncKeyState('W') & 0x8000)
+            {
+                main_camera.y += 1.0f / 60;
+            }
+
+            if (GetAsyncKeyState('S') & 0x8000)
+            {
+                main_camera.y -= 1.0f / 60;
+            }
+
             if (GetAsyncKeyState('D') & 0x8000)
             {
-                x1 += 1.0f / 60;
-                if (x1 > screenEdge)
-                    x1 = screenEdge;
+                main_camera.x += 1.0f / 60;
+                // x1 += 1.0f / 60;
+                // if (x1 > screenEdge)
+                //     x1 = screenEdge;
             }
             if (GetAsyncKeyState('A') & 0x8000)
             {
-                x1 -= 1.0f / 60;
-                if (x1 < -screenEdge)
-                    x1 = -screenEdge;
+                main_camera.x -= 1.0f / 60;
+                // x1 -= 1.0f / 60;
+                // if (x1 < -screenEdge)
+                //     x1 = -screenEdge;
             }
 
             struct projectile
@@ -376,6 +430,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static float yEnemyShift = 0.0f;
             bool shiftEnemiesThisFrame = false;
             static int aniFrame = 0;
+
             if (frameCount % enemyAdvanceRate == 0)
             {
                 aniFrame = (aniFrame == 0) ? 1 : 0;
@@ -429,7 +484,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     }
                 }
                 if ((rightmostX >= screenEdge - enemies[0][0].width / 2 || leftmostX <= -screenEdge + enemies[0][0].width / 2) && yEnemyShift == 0)
-                {                    
+                {
                     yEnemyShift = -enemies[0][0].height;
                     xEnemyShift *= -1;
                     enemyAdvanceRate = enemyAdvanceRate - 10;
@@ -450,7 +505,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     for (int y = 0; y < numenemysH; ++y)
                     {
-                        if (yEnemyShift == 0.0f){                            
+                        if (yEnemyShift == 0.0f)
+                        {
                             enemies[x][y].x += xEnemyShift;
                         }
                         enemies[x][y].y += yEnemyShift;
@@ -567,7 +623,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     if (ufo.alive && AABBTest(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h,
                                               ufo.x, ufo.y, ufo.width, ufo.height))
                     {
-                        score+= 200;
+                        score += 200;
                         ufo.alive = false;
                         hit = true;
                     }
@@ -649,15 +705,29 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
             texRenderConstantBufferData.view[0] = (float)window.height / (float)window.width;
-            renderer.StartDraw(0,0,0);
-            renderer.DrawRect(x1, y1, paddleWidth, paddleHeight);
+            renderer.StartDraw(0, 0, 0);
+
+            // draw map
+            for (int x = 0; x < 32; ++x)
+            {
+                for (int y = 0; y < 32; ++y)
+                {
+                    tile_data tile = map.data[x][y];
+                    if (tile.visible)
+                    {
+                        renderer.DrawRect((x * map.tileWidth) + map.x - main_camera.x, (y * map.tileWidth) + map.y - main_camera.y, map.tileWidth, map.tileWidth, 0, tile.r, tile.g, tile.b);
+                    }
+                }
+            }
+
+            renderer.DrawRect(x1-main_camera.x, y1-main_camera.y, paddleWidth, paddleHeight);
             if (playerProjectile.active)
-                renderer.DrawRect(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h);
+                renderer.DrawRect(playerProjectile.x - main_camera.x, playerProjectile.y - main_camera.y, playerProjectile.w, playerProjectile.h);
             if (enemyProjectile.active)
-                renderer.DrawRect(enemyProjectile.x, enemyProjectile.y, enemyProjectile.w, enemyProjectile.h);
+                renderer.DrawRect(enemyProjectile.x - main_camera.x, enemyProjectile.y - main_camera.y, enemyProjectile.w, enemyProjectile.h);
 
             if (ufo.alive)
-                renderer.DrawGameTextureRect(ufo.x, ufo.y, ufo.width, ufo.height, 0, 0, 127 - 8, 17, 127);
+                renderer.DrawGameTextureRect(ufo.x - main_camera.x, ufo.y - main_camera.y, ufo.width, ufo.height, 0, 0, 127 - 8, 17, 127);
 
             float shieldW = (enemyDimScale * 0.5f) * 0.75f;
 
@@ -672,13 +742,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         sprite_animation anim = shield.anim;
                         clip_rect currentFrame = anim.frames[4 - shield.health];
 
-                        renderer.DrawGameTextureRect(shield.x, shield.y, shield.width, shield.height, 0,
+                        renderer.DrawGameTextureRect(shield.x - main_camera.x, shield.y - main_camera.y, shield.width, shield.height, 0,
                                                      currentFrame.point[0].x, currentFrame.point[0].y,
                                                      currentFrame.point[1].x, currentFrame.point[1].y);
                     }
                 }
             }
-            
+
             for (int x = 0; x < numenemysW; ++x)
             {
                 for (int y = 0; y < numenemysH; ++y)
@@ -691,8 +761,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         y1 = enemy.anim.frames[aniFrame].point[0].y;
                         x2 = enemy.anim.frames[aniFrame].point[1].x;
                         y2 = enemy.anim.frames[aniFrame].point[1].y;
-                        
-                        renderer.DrawGameTextureRect(enemy.x, enemy.y, enemy.width, enemy.height, 0,
+
+                        renderer.DrawGameTextureRect(enemy.x - main_camera.x, enemy.y - main_camera.y, enemy.width, enemy.height, 0,
                                                      x1, y1, x2, y2);
                     }
                 }
@@ -706,9 +776,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             renderer.DrawFontRect(-1.05f - chW, 0.66667f, (score / 10) % 10, chW, chH);
             renderer.DrawFontRect(-1.05f - 2 * chW, 0.66667f, (score / 100) % 1000, chW, chH);
 
-            //framerate render
+            // framerate render
             static LARGE_INTEGER freq;
-            QueryPerformanceFrequency(&freq);  //TODO: don't do this every frame
+            QueryPerformanceFrequency(&freq); // TODO: don't do this every frame
             static LARGE_INTEGER perfCount, perfCountDifference;
             LARGE_INTEGER lastPerfCount = perfCount;
             QueryPerformanceCounter(&perfCount);
@@ -716,20 +786,18 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             perfCountDifference.QuadPart *= 1000000;
             perfCountDifference.QuadPart /= freq.QuadPart;
 
-
             static unsigned int frameRate = 0;
             static unsigned int lastFrameCount = 0;
-            if (frameCount - lastFrameCount > 20) { //only update framerate counter every 20 frames
-                frameRate = 1000000.0f/(float)(perfCountDifference.QuadPart);
+            if (frameCount - lastFrameCount > 20)
+            { // only update framerate counter every 20 frames
+                frameRate = 1000000.0f / (float)(perfCountDifference.QuadPart);
                 lastFrameCount = frameCount;
             }
 
-
-            
+            // TODO: render number as text helper function
             renderer.DrawFontRect(1.05f, 0.86667f, frameRate % 10, chW, chH);
             renderer.DrawFontRect(1.05f - chW, 0.86667f, (frameRate / 10) % 10, chW, chH);
-            renderer.DrawFontRect(1.05f - 2 * chW, 0.86667f, (frameRate / 100) % 1000, chW, chH);                        
-
+            renderer.DrawFontRect(1.05f - 2 * chW, 0.86667f, (frameRate / 100) % 1000, chW, chH);
 
             frameCount++;
             renderer.pSwapChain->Present(1, 0);
