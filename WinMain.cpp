@@ -51,6 +51,23 @@ struct v2
         y += v.y;
     }
 
+    void mult(float t)
+    {
+        x *= t;
+        y *= t;
+    }
+
+    void mult(v2 v)
+    {
+        x *= v.x;
+        y *= v.y;
+    }
+
+    bool equals(v2 v)
+    {
+        return ((x == v.x) && (y == v.y));
+    }
+
     void normalise(void)
     {
         float mag = sqrtf(x * x + y * y);
@@ -81,6 +98,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     ShowWindow(window.hwnd, SW_SHOWDEFAULT);
 
     unsigned int frameCount = 0;
+    float deltaTime = 0;
 
     bool quit = false;
     while (!quit)
@@ -534,7 +552,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             if (noCollisionsX)
             {
                 player.pos.x += player.velocity.x;
-                checkForFall = true;                
+                checkForFall = true;
             }
             if (noCollisionsY)
             {
@@ -547,8 +565,25 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // simulate camera motion
             // follow player
-            main_camera.pos.x = player.pos.x;
-            main_camera.pos.y = player.pos.y;
+            static float t = 0;
+
+            if (main_camera.pos.equals(player.pos))
+            {
+                t = 0;
+            }
+            else
+            {
+                t += deltaTime / 10000.0f;
+                if (t > 1)
+                {
+                    t = 1;
+                }
+            }            
+
+            v2 lastMainCameraPos = main_camera.pos;
+            
+            main_camera.pos.x = lastMainCameraPos.x + t*(player.pos.x-lastMainCameraPos.x);
+            main_camera.pos.y = lastMainCameraPos.y + t*(player.pos.y-lastMainCameraPos.y);
 
             struct projectile
             {
@@ -844,7 +879,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 hit = false;
             }
 
-            score = fabs(player.velocity.y *10000);            
+            score = fabs(player.velocity.y * 10000);
 
             // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
@@ -922,13 +957,18 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // framerate render
             static LARGE_INTEGER freq;
-            QueryPerformanceFrequency(&freq); // TODO: don't do this every frame
+            if (!freq.QuadPart)
+            {
+                QueryPerformanceFrequency(&freq); // TODO: don't do this every frame
+            }
             static LARGE_INTEGER perfCount, perfCountDifference;
             LARGE_INTEGER lastPerfCount = perfCount;
             QueryPerformanceCounter(&perfCount);
             perfCountDifference.QuadPart = perfCount.QuadPart - lastPerfCount.QuadPart;
             perfCountDifference.QuadPart *= 1000000;
             perfCountDifference.QuadPart /= freq.QuadPart;
+
+            deltaTime = (perfCountDifference.QuadPart / 1000.0f);
 
             static unsigned int frameRate = 0;
             static unsigned int lastFrameCount = 0;
