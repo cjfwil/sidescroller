@@ -25,11 +25,48 @@
 
 #include "src/XAudioRenderer.hpp"
 
-bool AABBTest(float x1, float y1, float w1, float h1,
-              float x2, float y2, float w2, float h2)
+static inline bool AABBTest(float x1, float y1, float w1, float h1,
+                            float x2, float y2, float w2, float h2)
 {
     return (fabs(x2 - x1) <= ((w1 + w2) / 2.0f) &&
             fabs(y2 - y1) <= ((h1 + h2) / 2.0f));
+}
+
+struct v2
+{
+    float x = 0.0f;
+    float y = 0.0f;
+
+    v2() = default;
+
+    v2(float v_x, float v_y)
+    {
+        x = v_x;
+        y = v_y;
+    }
+
+    void add(v2 v)
+    {
+        x += v.x;
+        y += v.y;
+    }
+
+    void normalise(void)
+    {
+        float mag = sqrtf(x * x + y * y);
+        if (mag)
+        {
+            x = x / mag;
+            y = y / mag;
+        }
+    }
+};
+
+bool AABBTest(v2 v_1, float w1, float h1,
+              v2 v_2, float w2, float h2)
+{
+    return (AABBTest(v_1.x, v_1.y, w1, h1,
+                     v_2.x, v_2.y, w2, h2));
 }
 
 INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
@@ -80,28 +117,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             float enemyWidth = 1 * enemyDimScale;
             float enemyHeight = 1 * 8.0 / 12.0f * enemyDimScale;
 
-            struct v2
-            {
-                float x;
-                float y;
-
-                void add(v2 v)
-                {
-                    x += v.x;
-                    y += v.y;
-                }
-
-                void normalise(void)
-                {
-                    float mag = sqrtf(x * x + y * y);
-                    if (mag)
-                    {
-                        x = x / mag;
-                        y = y / mag;
-                    }
-                }
-            };
-
             static struct
             {
                 v2 pos;
@@ -139,7 +154,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 sprite_animation anim = {};
             };
 
-            static entity_info player = {x1_, y1_, 0, 0, paddleWidth_, paddleHeight_};
+            static entity_info player = {v2(x1_, y1_), v2(0, 0), paddleWidth_, paddleHeight_};
 
             static entity_info shields[4][3 * 4] = {};
 
@@ -298,15 +313,16 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // setup tilemap data
             struct tile_data
             {
-                bool visible = true;
+                // v2 pos; // fill out on creation read only
                 float r, g, b;
+                bool visible = true;
             };
 
             static const int unsigned mapWidth = 32;
             struct map_info
             {
                 bool init = false;
-                float x = 0.0f, y = 0.0f;
+                float x = 0.0f, y = 0.0f; // TODO: make this refer to centre of tilemap? currently refers to centre of bottom left tile
                 float tileWidth = 1.0f;
                 tile_data data[mapWidth][mapWidth] = {};
             };
@@ -315,8 +331,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             if (!map.init)
             {
                 map.tileWidth = 0.1f;
-                map.x = -1.6f;
-                map.y = -1.6f;
+                map.x = -(mapWidth * map.tileWidth) / 2.0f;
+                map.y = -(mapWidth * map.tileWidth) / 2.0f;
                 for (int x = 0; x < mapWidth; ++x)
                 {
                     for (int y = 0; y < mapWidth; ++y)
@@ -330,13 +346,15 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         map.data[x][y] = tile;
                     }
                 }
-                for (int x = 0; x < mapWidth-3; ++x)
+                for (int x = 0; x < mapWidth - 3; ++x)
                 {
-                    for (int y = 3; y < mapWidth; ++y)
+                    for (int y = 3; y < mapWidth - 3; ++y)
                     {
-                        map.data[x][y].visible = false;                        
+                        map.data[x][y].visible = false;
                     }
                 }
+                map.data[5][3].visible = true;
+                map.data[5][4].visible = true;
                 map.init = true;
             }
 
@@ -411,20 +429,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 enemyInit = true;
             }
 
-            // player.velocity.y = -9.8f/60.0f * map.tileWidth
-            if (GetAsyncKeyState('W') & 0x8000)
-            {
-                player.velocity.y = 1.0f / 60;
-            }
-            else if (GetAsyncKeyState('S') & 0x8000)
-            {
-                player.velocity.y = -1.0f / 60;
-            }
-            else
-            {
-                player.velocity.y = 0;
-            }
-
             if (GetAsyncKeyState('D') & 0x8000)
             {
                 player.velocity.x = 1.0f / 60;
@@ -440,25 +444,98 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // simulate player motion
             // do collision detection here
+
+            static bool playerIsGrounded = false;
+            float fallDistance = 0.1f / 60.0f;            
+            if (!playerIsGrounded)
+            {                
+                player.velocity.y -= fallDistance;
+            }                        
+
+// jump
+#if 0
+            if (playerIsGrounded && GetAsyncKeyState('W') & 0x8000)
+            {
+                player.velocity.y = 1.0f / 60;
+                playerIsGrounded = false;                
+            }
+
+// controls like a jetpack
+#else
+            if (GetAsyncKeyState('W') & 0x8000)
+            {
+                player.velocity.y += 1.0f / 60;
+                playerIsGrounded = false;                
+            }
+            else if (!playerIsGrounded && GetAsyncKeyState('S') & 0x8000)
+            {
+                player.velocity.y = -1.0f / 60;
+            }
+#endif
+
             v2 nextPlayerPos = player.pos;
             nextPlayerPos.add(player.velocity);
-            bool noCollisions = true;
-            for (int x = 0; x < mapWidth; ++x)
-            {
-                for (int y = 0; y < mapWidth; ++y)
-                {
-                    tile_data tile = map.data[x][y];
+            bool noCollisionsX = true;
+            bool noCollisionsY = true;
 
-                    if (tile.visible && AABBTest(nextPlayerPos.x, nextPlayerPos.y, player.width, player.height,
-                                                 map.x + (x * map.tileWidth), map.y + (y * map.tileWidth), map.tileWidth, map.tileWidth))
+            // test against entire tilemap rectangle first
+            bool interactingWithMap = false;
+            if (AABBTest(nextPlayerPos.x, nextPlayerPos.y, player.width, player.height,
+                         map.x + (map.tileWidth * mapWidth) / 2, map.y + (map.tileWidth * mapWidth) / 2, map.tileWidth * (mapWidth + 1.0f), map.tileWidth * (mapWidth + 1.0f)))
+            {
+                interactingWithMap = true;
+            }
+
+            if (interactingWithMap)
+            {
+                // separate axis calculate
+                for (int x = 0; x < mapWidth; ++x)
+                {
+                    for (int y = 0; y < mapWidth; ++y)
                     {
-                        noCollisions = false;
+                        tile_data tile = map.data[x][y];
+                        if (tile.visible)
+                        {
+                            v2 tilePos = v2(x * map.tileWidth + map.x, y * map.tileWidth + map.y);
+                            v2 nextPositionXOnly = v2(nextPlayerPos.x, player.pos.y);
+                            if (AABBTest(nextPositionXOnly, player.width, player.height,
+                                         tilePos, map.tileWidth, map.tileWidth))
+                            {
+                                noCollisionsX = false;
+                            }
+
+                            v2 nextPositionYOnly = v2(player.pos.x, nextPlayerPos.y);
+                            bool test = AABBTest(nextPositionYOnly, player.width, player.height,
+                                                 tilePos, map.tileWidth, map.tileWidth);
+                            if (test)
+                            {
+                                noCollisionsY = false;
+                                // playerIsGrounded = true; // if this then can walk on ceiling ??
+
+                                if (tilePos.y < nextPositionYOnly.y)
+                                {
+                                    playerIsGrounded = true;                                    
+                                }
+                                else
+                                {
+                                    player.velocity.y = 0; // stop y velocity when head hits ceiling                                    
+                                }
+                            }
+                        }
                     }
                 }
             }
-            if (noCollisions)
+            if (noCollisionsX)
             {
-                player.pos.add(player.velocity);
+                player.pos.x += player.velocity.x;
+
+                // check if new position is in air for next
+                // playerIsGrounded = false; // tells next frame to check if falling
+            }
+            if (noCollisionsY)
+            {
+                player.pos.y += player.velocity.y;
+                player.velocity.y = 0;
             }
 
             // simulate camera motion
