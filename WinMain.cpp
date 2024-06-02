@@ -72,17 +72,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             //  explode
             //  tank
 
-            static struct
-            {
-                float x;
-                float y;
-                float zoomLevel;
-            } main_camera;
-
-            static float x1 = 0.0f;
-            static float y1 = -0.8f;
-            float paddleWidth = 0.1f;
-            float paddleHeight = 0.025f;
+            static float x1_ = 0.0f;
+            static float y1_ = -0.8f;
+            float paddleWidth_ = 0.09f;
+            float paddleHeight_ = 0.16f;
             float enemyDimScale = 0.18f;
             float enemyWidth = 1 * enemyDimScale;
             float enemyHeight = 1 * 8.0 / 12.0f * enemyDimScale;
@@ -91,7 +84,30 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 float x;
                 float y;
+
+                void add(v2 v)
+                {
+                    x += v.x;
+                    y += v.y;
+                }
+
+                void normalise(void)
+                {
+                    float mag = sqrtf(x * x + y * y);
+                    if (mag)
+                    {
+                        x = x / mag;
+                        y = y / mag;
+                    }
+                }
             };
+
+            static struct
+            {
+                v2 pos;
+                v2 velocity;
+                float zoomLevel;
+            } main_camera;
 
             struct clip_rect
             {
@@ -111,8 +127,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             struct entity_info
             {
-                float x;
-                float y;
+                v2 pos = {};
+                v2 velocity = {};
                 float width;
                 float height;
                 unsigned int index;
@@ -122,6 +138,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
                 sprite_animation anim = {};
             };
+
+            static entity_info player = {x1_, y1_, 0, 0, paddleWidth_, paddleHeight_};
 
             static entity_info shields[4][3 * 4] = {};
 
@@ -196,74 +214,74 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     float shieldX = i / 2.0f - screenEdge / 2 - shieldW * 3;
                     float shieldY = -0.5f;
 
-                    shields[i][0].x = shieldX;
-                    shields[i][0].y = shieldY;
+                    shields[i][0].pos.x = shieldX;
+                    shields[i][0].pos.y = shieldY;
                     shields[i][0].width = shieldW;
                     shields[i][0].height = shieldW;
                     shields[i][0].anim = mainBlock;
 
-                    shields[i][1].x = shieldX + shieldW;
-                    shields[i][1].y = shieldY;
+                    shields[i][1].pos.x = shieldX + shieldW;
+                    shields[i][1].pos.y = shieldY;
                     shields[i][1].width = shieldW;
                     shields[i][1].height = shieldW;
                     shields[i][1].anim = mainBlock;
 
-                    shields[i][2].x = shieldX + shieldW;
-                    shields[i][2].y = shieldY + shieldW;
+                    shields[i][2].pos.x = shieldX + shieldW;
+                    shields[i][2].pos.y = shieldY + shieldW;
                     shields[i][2].width = shieldW;
                     shields[i][2].height = shieldW;
                     shields[i][2].anim = mainBlock;
 
-                    shields[i][3].x = shieldX;
-                    shields[i][3].y = shieldY - shieldW;
+                    shields[i][3].pos.x = shieldX;
+                    shields[i][3].pos.y = shieldY - shieldW;
                     shields[i][3].width = shieldW;
                     shields[i][3].height = shieldW;
                     shields[i][3].anim = mainBlock;
 
-                    shields[i][4].x = shieldX + 2 * shieldW;
-                    shields[i][4].y = shieldY;
+                    shields[i][4].pos.x = shieldX + 2 * shieldW;
+                    shields[i][4].pos.y = shieldY;
                     shields[i][4].width = shieldW;
                     shields[i][4].height = shieldW;
                     shields[i][4].anim = mainBlock;
 
-                    shields[i][5].x = shieldX + 2 * shieldW;
-                    shields[i][5].y = shieldY + shieldW;
+                    shields[i][5].pos.x = shieldX + 2 * shieldW;
+                    shields[i][5].pos.y = shieldY + shieldW;
                     shields[i][5].width = shieldW;
                     shields[i][5].height = shieldW;
                     shields[i][5].anim = mainBlock;
 
-                    shields[i][6].x = shieldX + 3 * shieldW;
-                    shields[i][6].y = shieldY - shieldW;
+                    shields[i][6].pos.x = shieldX + 3 * shieldW;
+                    shields[i][6].pos.y = shieldY - shieldW;
                     shields[i][6].width = shieldW;
                     shields[i][6].height = shieldW;
                     shields[i][6].anim = mainBlock;
 
-                    shields[i][7].x = shieldX + 3 * shieldW;
-                    shields[i][7].y = shieldY;
+                    shields[i][7].pos.x = shieldX + 3 * shieldW;
+                    shields[i][7].pos.y = shieldY;
                     shields[i][7].width = shieldW;
                     shields[i][7].height = shieldW;
                     shields[i][7].anim = mainBlock;
 
-                    shields[i][8].x = shieldX;
-                    shields[i][8].y = shieldY + shieldW;
+                    shields[i][8].pos.x = shieldX;
+                    shields[i][8].pos.y = shieldY + shieldW;
                     shields[i][8].width = shieldW;
                     shields[i][8].height = shieldW;
                     shields[i][8].anim = nwFacingSlope;
 
-                    shields[i][9].x = shieldX + shieldW;
-                    shields[i][9].y = shieldY - shieldW;
+                    shields[i][9].pos.x = shieldX + shieldW;
+                    shields[i][9].pos.y = shieldY - shieldW;
                     shields[i][9].width = shieldW;
                     shields[i][9].height = shieldW;
                     shields[i][9].anim = seFacingSlope;
 
-                    shields[i][10].x = shieldX + 3 * shieldW;
-                    shields[i][10].y = shieldY + shieldW;
+                    shields[i][10].pos.x = shieldX + 3 * shieldW;
+                    shields[i][10].pos.y = shieldY + shieldW;
                     shields[i][10].width = shieldW;
                     shields[i][10].height = shieldW;
                     shields[i][10].anim = neFacingSlope;
 
-                    shields[i][11].x = shieldX + 2 * shieldW;
-                    shields[i][11].y = shieldY - shieldW;
+                    shields[i][11].pos.x = shieldX + 2 * shieldW;
+                    shields[i][11].pos.y = shieldY - shieldW;
                     shields[i][11].width = shieldW;
                     shields[i][11].height = shieldW;
                     shields[i][11].anim = swFacingSlope;
@@ -277,28 +295,31 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 shieldInit = true;
             }
 
-            //setup tilemap data
+            // setup tilemap data
             struct tile_data
             {
                 bool visible = true;
                 float r, g, b;
             };
 
+            static const int unsigned mapWidth = 32;
             struct map_info
             {
                 bool init = false;
                 float x = 0.0f, y = 0.0f;
                 float tileWidth = 1.0f;
-                tile_data data[32][32] = {};
+                tile_data data[mapWidth][mapWidth] = {};
             };
 
             static map_info map;
             if (!map.init)
             {
                 map.tileWidth = 0.1f;
-                for (int x = 0; x < 32; ++x)
+                map.x = -1.6f;
+                map.y = -1.6f;
+                for (int x = 0; x < mapWidth; ++x)
                 {
-                    for (int y = 0; y < 32; ++y)
+                    for (int y = 0; y < mapWidth; ++y)
                     {
                         tile_data tile = {};
                         // tile.visible = (x % 2 == 0) ^ (y % 2 == 0);
@@ -307,6 +328,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         tile.g = (rand() % 256) / 255.0f;
                         tile.b = (rand() % 256) / 255.0f;
                         map.data[x][y] = tile;
+                    }
+                }
+                for (int x = 0; x < mapWidth-3; ++x)
+                {
+                    for (int y = 3; y < mapWidth; ++y)
+                    {
+                        map.data[x][y].visible = false;                        
                     }
                 }
                 map.init = true;
@@ -330,8 +358,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         entity_info b;
                         b.width = enemyWidth;
                         b.height = enemyHeight;
-                        b.x = x * b.width + b.width / 2.0f - 1.0f;
-                        b.y = y * b.height;
+                        b.pos.x = x * b.width + b.width / 2.0f - 1.0f;
+                        b.pos.y = y * b.height;
                         b.points = points[index];
                         b.index = index;
 
@@ -383,30 +411,60 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 enemyInit = true;
             }
 
+            // player.velocity.y = -9.8f/60.0f * map.tileWidth
             if (GetAsyncKeyState('W') & 0x8000)
             {
-                main_camera.y += 1.0f / 60;
+                player.velocity.y = 1.0f / 60;
             }
-
-            if (GetAsyncKeyState('S') & 0x8000)
+            else if (GetAsyncKeyState('S') & 0x8000)
             {
-                main_camera.y -= 1.0f / 60;
+                player.velocity.y = -1.0f / 60;
+            }
+            else
+            {
+                player.velocity.y = 0;
             }
 
             if (GetAsyncKeyState('D') & 0x8000)
             {
-                main_camera.x += 1.0f / 60;
-                // x1 += 1.0f / 60;
-                // if (x1 > screenEdge)
-                //     x1 = screenEdge;
+                player.velocity.x = 1.0f / 60;
             }
-            if (GetAsyncKeyState('A') & 0x8000)
+            else if (GetAsyncKeyState('A') & 0x8000)
             {
-                main_camera.x -= 1.0f / 60;
-                // x1 -= 1.0f / 60;
-                // if (x1 < -screenEdge)
-                //     x1 = -screenEdge;
+                player.velocity.x = -1.0f / 60;
             }
+            else
+            {
+                player.velocity.x = 0;
+            }
+
+            // simulate player motion
+            // do collision detection here
+            v2 nextPlayerPos = player.pos;
+            nextPlayerPos.add(player.velocity);
+            bool noCollisions = true;
+            for (int x = 0; x < mapWidth; ++x)
+            {
+                for (int y = 0; y < mapWidth; ++y)
+                {
+                    tile_data tile = map.data[x][y];
+
+                    if (tile.visible && AABBTest(nextPlayerPos.x, nextPlayerPos.y, player.width, player.height,
+                                                 map.x + (x * map.tileWidth), map.y + (y * map.tileWidth), map.tileWidth, map.tileWidth))
+                    {
+                        noCollisions = false;
+                    }
+                }
+            }
+            if (noCollisions)
+            {
+                player.pos.add(player.velocity);
+            }
+
+            // simulate camera motion
+            // follow player
+            main_camera.pos.x = player.pos.x;
+            main_camera.pos.y = player.pos.y;
 
             struct projectile
             {
@@ -459,13 +517,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                             entity_info e2 = enemies[x][y];
                             if (e2.alive)
                             {
-                                if (e2.x < leftmostX)
+                                if (e2.pos.x < leftmostX)
                                 {
-                                    leftmostX = e2.x;
+                                    leftmostX = e2.pos.x;
                                 }
-                                if (e2.x > rightmostX)
+                                if (e2.pos.x > rightmostX)
                                 {
-                                    rightmostX = e2.x;
+                                    rightmostX = e2.pos.x;
                                 }
                                 break;
                             }
@@ -473,13 +531,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     }
                     else
                     {
-                        if (e.x < leftmostX)
+                        if (e.pos.x < leftmostX)
                         {
-                            leftmostX = e.x;
+                            leftmostX = e.pos.x;
                         }
-                        if (e.x > rightmostX)
+                        if (e.pos.x > rightmostX)
                         {
-                            rightmostX = e.x;
+                            rightmostX = e.pos.x;
                         }
                     }
                 }
@@ -507,11 +565,11 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     {
                         if (yEnemyShift == 0.0f)
                         {
-                            enemies[x][y].x += xEnemyShift;
+                            enemies[x][y].pos.x += xEnemyShift;
                         }
-                        enemies[x][y].y += yEnemyShift;
+                        enemies[x][y].pos.y += yEnemyShift;
 
-                        if (enemies[x][y].y <= y1 && enemies[x][y].alive)
+                        if (enemies[x][y].pos.y <= player.pos.y && enemies[x][y].alive)
                         {
                             gameOver = true;
                         }
@@ -533,8 +591,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 entity_info e = enemies[rand() % numenemysW][rand() % numenemysH];
                 if (e.alive)
                 {
-                    enemyProjectile.x = e.x;
-                    enemyProjectile.y = e.y;
+                    enemyProjectile.x = e.pos.x;
+                    enemyProjectile.y = e.pos.y;
                     enemyProjectile.active = true;
                     enemyProjectile.trajX = 0;
                     enemyProjectile.trajY = -1;
@@ -548,8 +606,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             if (frameCount % (ufoAppearRate * 60) == 0 && frameCount != 0)
             {
                 ufo.alive = true;
-                ufo.x = screenEdge + ufo.width / 2;
-                ufo.y = 1 - ufo.height;
+                ufo.pos.x = screenEdge + ufo.width / 2;
+                ufo.pos.y = 1 - ufo.height;
             }
             else if (frameCount == 0)
             {
@@ -559,9 +617,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // simulate ufo
             if (ufo.alive)
             {
-                ufo.x += -1.0f / 60 * (1 / 5.0f);
+                ufo.pos.x += -1.0f / 60 * (1 / 5.0f);
 
-                if (ufo.x < -screenEdge)
+                if (ufo.pos.x < -screenEdge)
                 {
                     ufo.alive = false;
                 }
@@ -588,7 +646,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         {
                             entity_info b = enemies[x][y];
                             bool result = AABBTest(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h,
-                                                   b.x, b.y, b.width, b.height);
+                                                   b.pos.x, b.pos.y, b.width, b.height);
                             if (b.alive && result)
                             {
                                 score += b.points;
@@ -606,7 +664,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         {
                             entity_info s = shields[i][j];
                             bool result = AABBTest(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h,
-                                                   s.x, s.y, s.width, s.height);
+                                                   s.pos.x, s.pos.y, s.width, s.height);
                             if (s.alive && result)
                             {
                                 shields[i][j].health--;
@@ -621,7 +679,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     }
 
                     if (ufo.alive && AABBTest(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h,
-                                              ufo.x, ufo.y, ufo.width, ufo.height))
+                                              ufo.pos.x, ufo.pos.y, ufo.width, ufo.height))
                     {
                         score += 200;
                         ufo.alive = false;
@@ -635,13 +693,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
             else
             {
-                playerProjectile.x = x1;
-                playerProjectile.y = y1;
+                playerProjectile.x = player.pos.x;
+                playerProjectile.y = player.pos.y;
                 if (GetAsyncKeyState(VK_SPACE) & 0x8000)
                 {
                     xa.Play(1, 1.0f);
-                    playerProjectile.x = x1;
-                    playerProjectile.y = y1;
+                    playerProjectile.x = player.pos.x;
+                    playerProjectile.y = player.pos.y;
                     playerProjectile.active = true;
                 }
             }
@@ -651,7 +709,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 enemyProjectile.x += enemyProjectile.trajX / 60 * speed;
                 enemyProjectile.y += enemyProjectile.trajY / 60 * speed;
                 bool result = AABBTest(enemyProjectile.x, enemyProjectile.y, enemyProjectile.w, enemyProjectile.h,
-                                       x1, y1, paddleWidth, paddleHeight);
+                                       player.pos.x, player.pos.y, player.width, player.height);
                 if (result)
                 {
                     hit = true;
@@ -679,7 +737,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                             entity_info shield = shields[i][j];
 
                             if (shield.alive && AABBTest(enemyProjectile.x, enemyProjectile.y, enemyProjectile.w, enemyProjectile.h,
-                                                         shield.x, shield.y, shield.width, shield.height))
+                                                         shield.pos.x, shield.pos.y, shield.width, shield.height))
                             {
                                 shields[i][j].health--;
                                 // TODO this is repeating so pull this out into "simulate shields"
@@ -708,26 +766,26 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             renderer.StartDraw(0, 0, 0);
 
             // draw map
-            for (int x = 0; x < 32; ++x)
+            for (int x = 0; x < mapWidth; ++x)
             {
-                for (int y = 0; y < 32; ++y)
+                for (int y = 0; y < mapWidth; ++y)
                 {
                     tile_data tile = map.data[x][y];
                     if (tile.visible)
                     {
-                        renderer.DrawRect((x * map.tileWidth) + map.x - main_camera.x, (y * map.tileWidth) + map.y - main_camera.y, map.tileWidth, map.tileWidth, 0, tile.r, tile.g, tile.b);
+                        renderer.DrawRect((x * map.tileWidth) + map.x - main_camera.pos.x, (y * map.tileWidth) + map.y - main_camera.pos.y, map.tileWidth, map.tileWidth, 0, tile.r, tile.g, tile.b);
                     }
                 }
             }
 
-            renderer.DrawRect(x1-main_camera.x, y1-main_camera.y, paddleWidth, paddleHeight);
+            renderer.DrawRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y, player.width, player.height);
             if (playerProjectile.active)
-                renderer.DrawRect(playerProjectile.x - main_camera.x, playerProjectile.y - main_camera.y, playerProjectile.w, playerProjectile.h);
+                renderer.DrawRect(playerProjectile.x - main_camera.pos.x, playerProjectile.y - main_camera.pos.y, playerProjectile.w, playerProjectile.h);
             if (enemyProjectile.active)
-                renderer.DrawRect(enemyProjectile.x - main_camera.x, enemyProjectile.y - main_camera.y, enemyProjectile.w, enemyProjectile.h);
+                renderer.DrawRect(enemyProjectile.x - main_camera.pos.x, enemyProjectile.y - main_camera.pos.y, enemyProjectile.w, enemyProjectile.h);
 
             if (ufo.alive)
-                renderer.DrawGameTextureRect(ufo.x - main_camera.x, ufo.y - main_camera.y, ufo.width, ufo.height, 0, 0, 127 - 8, 17, 127);
+                renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height, 0, 0, 127 - 8, 17, 127);
 
             float shieldW = (enemyDimScale * 0.5f) * 0.75f;
 
@@ -742,7 +800,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         sprite_animation anim = shield.anim;
                         clip_rect currentFrame = anim.frames[4 - shield.health];
 
-                        renderer.DrawGameTextureRect(shield.x - main_camera.x, shield.y - main_camera.y, shield.width, shield.height, 0,
+                        renderer.DrawGameTextureRect(shield.pos.x - main_camera.pos.x, shield.pos.y - main_camera.pos.y, shield.width, shield.height, 0,
                                                      currentFrame.point[0].x, currentFrame.point[0].y,
                                                      currentFrame.point[1].x, currentFrame.point[1].y);
                     }
@@ -762,7 +820,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         x2 = enemy.anim.frames[aniFrame].point[1].x;
                         y2 = enemy.anim.frames[aniFrame].point[1].y;
 
-                        renderer.DrawGameTextureRect(enemy.x - main_camera.x, enemy.y - main_camera.y, enemy.width, enemy.height, 0,
+                        renderer.DrawGameTextureRect(enemy.pos.x - main_camera.pos.x, enemy.pos.y - main_camera.pos.y, enemy.width, enemy.height, 0,
                                                      x1, y1, x2, y2);
                     }
                 }
