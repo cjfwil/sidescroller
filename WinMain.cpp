@@ -446,26 +446,32 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // do collision detection here
 
             static bool playerIsGrounded = false;
-            float fallDistance = 0.1f / 60.0f;            
-            if (!playerIsGrounded)
-            {                
+            float fallDistance = 0.1f / 60.0f;
+            static bool checkForFall = false;
+            if (!playerIsGrounded || checkForFall)
+            {
                 player.velocity.y -= fallDistance;
-            }                        
+                checkForFall = false;
+            }
+            else
+            {
+                player.velocity.y = 0;
+            }
 
 // jump
 #if 0
             if (playerIsGrounded && GetAsyncKeyState('W') & 0x8000)
             {
-                player.velocity.y = 1.0f / 60;
-                playerIsGrounded = false;                
+                player.velocity.y = 2.0f / 60;
+                playerIsGrounded = false;
             }
 
 // controls like a jetpack
 #else
             if (GetAsyncKeyState('W') & 0x8000)
             {
-                player.velocity.y += 1.0f / 60;
-                playerIsGrounded = false;                
+                player.velocity.y += fallDistance * 1.5f;
+                playerIsGrounded = false;
             }
             else if (!playerIsGrounded && GetAsyncKeyState('S') & 0x8000)
             {
@@ -514,11 +520,11 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
                                 if (tilePos.y < nextPositionYOnly.y)
                                 {
-                                    playerIsGrounded = true;                                    
+                                    playerIsGrounded = true;
                                 }
                                 else
                                 {
-                                    player.velocity.y = 0; // stop y velocity when head hits ceiling                                    
+                                    player.velocity.y = 0; // stop y velocity when head hits ceiling
                                 }
                             }
                         }
@@ -528,13 +534,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             if (noCollisionsX)
             {
                 player.pos.x += player.velocity.x;
-
-                // check if new position is in air for next
-                // playerIsGrounded = false; // tells next frame to check if falling
+                checkForFall = true;                
             }
             if (noCollisionsY)
             {
                 player.pos.y += player.velocity.y;
+            }
+            else
+            {
                 player.velocity.y = 0;
             }
 
@@ -836,6 +843,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 xa.Play(1, soundFreq);
                 hit = false;
             }
+
+            score = fabs(player.velocity.y *10000);            
 
             // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
