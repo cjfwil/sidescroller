@@ -25,13 +25,6 @@
 
 #include "src/XAudioRenderer.hpp"
 
-static inline bool AABBTest(float x1, float y1, float w1, float h1,
-                            float x2, float y2, float w2, float h2)
-{
-    return (fabs(x2 - x1) <= ((w1 + w2) / 2.0f) &&
-            fabs(y2 - y1) <= ((h1 + h2) / 2.0f));
-}
-
 struct v2
 {
     float x = 0.0f;
@@ -68,6 +61,13 @@ struct v2
         return ((x == v.x) && (y == v.y));
     }
 
+    bool within_radius(float r, v2 v)
+    {
+        float x_ = x - v.x;
+        float y_ = y - v.y;
+        return (x_ * x_ + y_ * y_ <= r * r);
+    }
+
     void normalise(void)
     {
         float mag = sqrtf(x * x + y * y);
@@ -78,6 +78,13 @@ struct v2
         }
     }
 };
+
+static inline bool AABBTest(float x1, float y1, float w1, float h1,
+                            float x2, float y2, float w2, float h2)
+{
+    return (fabs(x2 - x1) <= ((w1 + w2) / 2.0f) &&
+            fabs(y2 - y1) <= ((h1 + h2) / 2.0f));
+}
 
 bool AABBTest(v2 v_1, float w1, float h1,
               v2 v_2, float w2, float h2)
@@ -128,7 +135,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             //  tank
 
             static float x1_ = 0.0f;
-            static float y1_ = -0.8f;
+            static float y1_ = 0.0f;
             float paddleWidth_ = 0.09f;
             float paddleHeight_ = 0.16f;
             float enemyDimScale = 0.18f;
@@ -139,7 +146,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 v2 pos;
                 v2 velocity;
-                float zoomLevel;
             } main_camera;
 
             struct clip_rect
@@ -336,44 +342,76 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 bool visible = true;
             };
 
-            static const int unsigned mapWidth = 32;
+            static const int unsigned mapWidth = 32; // in tiles
             struct map_info
             {
                 bool init = false;
                 float x = 0.0f, y = 0.0f; // TODO: make this refer to centre of tilemap? currently refers to centre of bottom left tile
                 float tileWidth = 1.0f;
                 tile_data data[mapWidth][mapWidth] = {};
+
+                inline float MapWidthInUnits()
+                {
+                    return (mapWidth * tileWidth);
+                }
             };
 
-            static map_info map;
-            if (!map.init)
+            static const int mapNumX = 16;
+            static const int mapNumY = 16;
+
+            static map_info map[mapNumX][mapNumY];
+            for (int j = 0; j < mapNumY; ++j)
             {
-                map.tileWidth = 0.1f;
-                map.x = -(mapWidth * map.tileWidth) / 2.0f;
-                map.y = -(mapWidth * map.tileWidth) / 2.0f;
-                for (int x = 0; x < mapWidth; ++x)
+                for (int i = 0; i < mapNumX; ++i)
                 {
-                    for (int y = 0; y < mapWidth; ++y)
+                    if (!map[i][j].init)
                     {
-                        tile_data tile = {};
-                        // tile.visible = (x % 2 == 0) ^ (y % 2 == 0);
-                        // tile.visible = true;
-                        tile.r = (rand() % 256) / 255.0f;
-                        tile.g = (rand() % 256) / 255.0f;
-                        tile.b = (rand() % 256) / 255.0f;
-                        map.data[x][y] = tile;
+                        float globalTileWidth = 0.1f;
+                        map[i][j].tileWidth = globalTileWidth;
+                        map[i][j].x = -(mapWidth * map[i][j].tileWidth) / 2.0f + (i * globalTileWidth * mapWidth);
+                        map[i][j].y = -(mapWidth * map[i][j].tileWidth) / 2.0f + (j * globalTileWidth * mapWidth);
+                        for (int x = 0; x < mapWidth; ++x)
+                        {
+                            for (int y = 0; y < mapWidth; ++y)
+                            {
+                                tile_data tile = {};
+                                // tile.visible = (x % 2 == 0) ^ (y % 2 == 0);
+                                // tile.visible = true;
+                                tile.r = (rand() % 256) / 255.0f;
+                                tile.g = (rand() % 256) / 255.0f;
+                                tile.b = (rand() % 256) / 255.0f;
+                                map[i][j].data[x][y] = tile;
+                            }
+                        }
+                        for (int x = 0; x < mapWidth - 3; ++x)
+                        {
+                            for (int y = 3; y < mapWidth - 3; ++y)
+                            {
+                                map[i][j].data[x][y].visible = false;
+                            }
+                        }
+                        for (int x = 29; x < mapWidth; ++x)
+                        {
+                            for (int y = 29 - 6; y < mapWidth; ++y)
+                            {
+                                map[i][j].data[x][y].visible = false;
+                            }
+                        }
+
+                        for (int x = 29; x < mapWidth; ++x)
+                        {
+                            for (int y = 0; y < 6; ++y)
+                            {
+                                map[i][j].data[x][y].visible = false;
+                            }
+                        }
+
+
+                        map[i][j].data[5][3].visible = true;
+                        map[i][j].data[5][4].visible = true;
+                        map[i][j].init = true;
                     }
                 }
-                for (int x = 0; x < mapWidth - 3; ++x)
-                {
-                    for (int y = 3; y < mapWidth - 3; ++y)
-                    {
-                        map.data[x][y].visible = false;
-                    }
-                }
-                map.data[5][3].visible = true;
-                map.data[5][4].visible = true;
-                map.init = true;
             }
 
             static const int numenemysW = 11;
@@ -463,6 +501,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // simulate player motion
             // do collision detection here
 
+            // TODO: bug when fall off ledge, then can cling to side of wall
+
             static bool playerIsGrounded = false;
             float fallDistance = 0.1f / 60.0f;
             static bool checkForFall = false;
@@ -503,46 +543,53 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             bool noCollisionsY = true;
 
             // test against entire tilemap rectangle first
-            bool interactingWithMap = false;
-            if (AABBTest(nextPlayerPos.x, nextPlayerPos.y, player.width, player.height,
-                         map.x + (map.tileWidth * mapWidth) / 2, map.y + (map.tileWidth * mapWidth) / 2, map.tileWidth * (mapWidth + 1.0f), map.tileWidth * (mapWidth + 1.0f)))
+            for (int j = 0; j < mapNumY; ++j)
             {
-                interactingWithMap = true;
-            }
-
-            if (interactingWithMap)
-            {
-                // separate axis calculate
-                for (int x = 0; x < mapWidth; ++x)
+                for (int i = 0; i < mapNumX; ++i)
                 {
-                    for (int y = 0; y < mapWidth; ++y)
+                    bool interactingWithMap = false;
+                    if (AABBTest(nextPlayerPos.x, nextPlayerPos.y, player.width, player.height,
+                                 map[i][j].x + (map[i][j].tileWidth * mapWidth) / 2, map[i][j].y + (map[i][j].tileWidth * mapWidth) / 2,
+                                 map[i][j].tileWidth * (mapWidth + 1.0f), map[i][j].tileWidth * (mapWidth + 1.0f)))
                     {
-                        tile_data tile = map.data[x][y];
-                        if (tile.visible)
+                        interactingWithMap = true;
+                    }
+
+                    if (interactingWithMap)
+                    {
+                        // separate axis calculate
+                        for (int x = 0; x < mapWidth; ++x)
                         {
-                            v2 tilePos = v2(x * map.tileWidth + map.x, y * map.tileWidth + map.y);
-                            v2 nextPositionXOnly = v2(nextPlayerPos.x, player.pos.y);
-                            if (AABBTest(nextPositionXOnly, player.width, player.height,
-                                         tilePos, map.tileWidth, map.tileWidth))
+                            for (int y = 0; y < mapWidth; ++y)
                             {
-                                noCollisionsX = false;
-                            }
-
-                            v2 nextPositionYOnly = v2(player.pos.x, nextPlayerPos.y);
-                            bool test = AABBTest(nextPositionYOnly, player.width, player.height,
-                                                 tilePos, map.tileWidth, map.tileWidth);
-                            if (test)
-                            {
-                                noCollisionsY = false;
-                                // playerIsGrounded = true; // if this then can walk on ceiling ??
-
-                                if (tilePos.y < nextPositionYOnly.y)
+                                tile_data tile = map[i][j].data[x][y];
+                                if (tile.visible)
                                 {
-                                    playerIsGrounded = true;
-                                }
-                                else
-                                {
-                                    player.velocity.y = 0; // stop y velocity when head hits ceiling
+                                    v2 tilePos = v2(x * map[i][j].tileWidth + map[i][j].x, y * map[i][j].tileWidth + map[i][j].y);
+                                    v2 nextPositionXOnly = v2(nextPlayerPos.x, player.pos.y);
+                                    if (AABBTest(nextPositionXOnly, player.width, player.height,
+                                                 tilePos, map[i][j].tileWidth, map[i][j].tileWidth))
+                                    {
+                                        noCollisionsX = false;
+                                    }
+
+                                    v2 nextPositionYOnly = v2(player.pos.x, nextPlayerPos.y);
+                                    bool test = AABBTest(nextPositionYOnly, player.width, player.height,
+                                                         tilePos, map[i][j].tileWidth, map[i][j].tileWidth);
+                                    if (test)
+                                    {
+                                        noCollisionsY = false;
+                                        // playerIsGrounded = true; // if this then can walk on ceiling ??
+
+                                        if (tilePos.y < nextPositionYOnly.y)
+                                        {
+                                            playerIsGrounded = true;
+                                        }
+                                        else
+                                        {
+                                            player.velocity.y = 0; // stop y velocity when head hits ceiling
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -567,7 +614,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // follow player
             static float t = 0;
 
-            if (main_camera.pos.equals(player.pos))
+            if (main_camera.pos.within_radius(0.01f, player.pos))
             {
                 t = 0;
             }
@@ -578,12 +625,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     t = 1;
                 }
-            }            
+            }
 
             v2 lastMainCameraPos = main_camera.pos;
-            
-            main_camera.pos.x = lastMainCameraPos.x + t*(player.pos.x-lastMainCameraPos.x);
-            main_camera.pos.y = lastMainCameraPos.y + t*(player.pos.y-lastMainCameraPos.y);
+
+            main_camera.pos.x = lastMainCameraPos.x + t * (player.pos.x - lastMainCameraPos.x);
+            main_camera.pos.y = lastMainCameraPos.y + t * (player.pos.y - lastMainCameraPos.y);
 
             struct projectile
             {
@@ -886,15 +933,41 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             texRenderConstantBufferData.view[0] = (float)window.height / (float)window.width;
             renderer.StartDraw(0, 0, 0);
 
-            // draw map
-            for (int x = 0; x < mapWidth; ++x)
+            // draw tilemap
+
+            // camera AABB test against chunks
+
+            for (int j = 0; j < mapNumY; ++j)
             {
-                for (int y = 0; y < mapWidth; ++y)
+                for (int i = 0; i < mapNumX; ++i)
                 {
-                    tile_data tile = map.data[x][y];
-                    if (tile.visible)
+                    map_info m = map[i][j];
+                    float w = m.MapWidthInUnits();
+                    float camH = 2.0f;
+                    float camW = camH * (float)window.width / (float)window.height;
+                    bool test_success = AABBTest(m.x + w / 2, m.y + w / 2, w, w,
+                                                 main_camera.pos.x, main_camera.pos.y, camW, camH);
+
+                    // test_success = true;
+                    if (test_success)
                     {
-                        renderer.DrawRect((x * map.tileWidth) + map.x - main_camera.pos.x, (y * map.tileWidth) + map.y - main_camera.pos.y, map.tileWidth, map.tileWidth, 0, tile.r, tile.g, tile.b);
+                        // render map m
+                        for (int x = 0; x < mapWidth; ++x)
+                        {
+                            for (int y = 0; y < mapWidth; ++y)
+                            {
+                                tile_data tile = m.data[x][y];
+                                if (tile.visible)
+                                {
+                                    float tileX = (x * m.tileWidth) + m.x;
+                                    float tileY = (y * m.tileWidth) + m.y;
+                                    test_success = AABBTest(tileX, tileY, m.tileWidth, m.tileWidth,
+                                                            main_camera.pos.x, main_camera.pos.y, camW, camH);
+                                    if (test_success)
+                                        renderer.DrawRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, m.tileWidth, m.tileWidth, 0, tile.r, tile.g, tile.b);
+                                }
+                            }
+                        }
                     }
                 }
             }
