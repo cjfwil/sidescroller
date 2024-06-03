@@ -6,6 +6,7 @@
             "command": "cl.exe",
             "args": [
                 "/Zi",
+                // "/Wall",
                 "/EHsc",
                 "/nologo",
                 "/Fe${fileDirname}\\${fileBasenameNoExtension}.exe",

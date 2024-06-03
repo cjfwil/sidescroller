@@ -38,22 +38,22 @@ struct v2
         y = v_y;
     }
 
-    void add(v2 v)
+    inline v2 operator+(v2 v) 
     {
-        x += v.x;
-        y += v.y;
+        v2 u = v2(x+v.x, y+v.y);
+        return u;
+    }    
+
+    inline v2 operator*(float t)
+    {
+        v2 u = v2(x * t, y * t);
+        return u;
     }
 
-    void mult(float t)
+    inline v2 operator*(v2 v)
     {
-        x *= t;
-        y *= t;
-    }
-
-    void mult(v2 v)
-    {
-        x *= v.x;
-        y *= v.y;
+        v2 u = v2(x * v.x, y * v.y);
+        return u;
     }
 
     bool equals(v2 v)
@@ -536,9 +536,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 player.velocity.y = -1.0f / 60;
             }
 #endif
-
-            v2 nextPlayerPos = player.pos;
-            nextPlayerPos.add(player.velocity);
+            
+            v2 nextPlayerPos = player.pos + player.velocity;
             bool noCollisionsX = true;
             bool noCollisionsY = true;
 
