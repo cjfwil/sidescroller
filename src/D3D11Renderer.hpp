@@ -76,16 +76,16 @@ public:
                 {
                     hr = CreateWindowResources(hwnd);
                     if (FAILED(hr))
-                        OutputDebugStringA("Failed to create D3D11 Window Resources");
+                        OutputDebugStringA("Failed to create D3D11 Window Resources\n");
                 }
                 else
-                    OutputDebugStringA("Failed to create quad");
+                    OutputDebugStringA("Failed to create quad\n");
             }
             else
                 OutputDebugStringA("Failed to create shaders\n");
         }
         else
-            OutputDebugStringA("Failed to creat D3D11 Device Resources\n");
+            OutputDebugStringA("Failed to create D3D11 Device Resources\n");
     }
 
     void DrawRect(float x, float y, float w = 1.0f, float h = 1.0f, float theta = 0.0f,
@@ -476,7 +476,7 @@ private:
     ID3D11InputLayout *m_pInputLayout;
     ID3D11InputLayout *m_pInputLayoutExtended;
 
-public:
+private:
     ID3D11PixelShader *m_pPixelShader[2] = {};
     ID3D11Buffer *m_pConstantBuffer;
     ID3D11Buffer *m_pTexRenderConstantBuffer;

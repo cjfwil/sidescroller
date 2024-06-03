@@ -38,11 +38,11 @@ struct v2
         y = v_y;
     }
 
-    inline v2 operator+(v2 v) 
+    inline v2 operator+(v2 v)
     {
-        v2 u = v2(x+v.x, y+v.y);
+        v2 u = v2(x + v.x, y + v.y);
         return u;
-    }    
+    }
 
     inline v2 operator*(float t)
     {
@@ -80,8 +80,13 @@ struct v2
 
     v2 lerp_to(v2 v, float t)
     {
-        v2 u = v2(x, y) + v2(v.x-x, v.y-y)*t;
+        v2 u = v2(x, y) + v2(v.x - x, v.y - y) * t;
         return u;
+    }
+
+    float dot(v2 v)
+    {
+        return (x * v.x + y * v.y);
     }
 };
 
@@ -133,7 +138,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // enemy explode animation on death
             // enemies shoot down projectiles
             // ^^^ need to turn projectile code into supporting multiple projectiles
-            
+
             // static enemy
             // walking back and forth enemy between 2 points
             // enemy that falls off ledge
@@ -141,13 +146,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // enemy that walks between N points back and forth
             // enemy that chases player
 
-            // render tiles as textures        
+            // render tiles as textures
             // render player as texture
 
             // assets req
             //  bullets ?
             //  new sounds: fire, explosion
-            //  explode            
+            //  explode
             // tile textures
             // character texture and animations
 
@@ -423,7 +428,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                             }
                         }
 
-
                         map[i][j].data[5][3].visible = true;
                         map[i][j].data[5][4].visible = true;
                         map[i][j].init = true;
@@ -431,8 +435,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 }
             }
 
-            static const int numenemysW = 11;
-            static const int numenemysH = 5;
+            static const int numenemysW = 1;
+            static const int numenemysH = 1;
             static entity_info enemies[numenemysW][numenemysH] = {};
 
             static bool enemyInit = false;
@@ -516,7 +520,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
 
             // simulate player motion
-            // do collision detection here            
+            // do collision detection here
 
             static bool playerIsGrounded = false;
             float fallDistance = 0.1f / 60.0f;
@@ -551,7 +555,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 player.velocity.y = -1.0f / 60;
             }
 #endif
-            
+
             v2 nextPlayerPos = player.pos + player.velocity;
             bool noCollisionsX = true;
             bool noCollisionsY = true;
@@ -639,7 +643,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     t = 1;
                 }
-            }            
+            }
             main_camera.pos = main_camera.pos.lerp_to(player.pos, t);
 
             struct projectile
