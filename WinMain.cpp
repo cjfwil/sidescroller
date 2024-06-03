@@ -77,6 +77,12 @@ struct v2
             y = y / mag;
         }
     }
+
+    v2 lerp_to(v2 v, float t)
+    {
+        v2 u = v2(x, y) + v2(v.x-x, v.y-y)*t;
+        return u;
+    }
 };
 
 static inline bool AABBTest(float x1, float y1, float w1, float h1,
@@ -135,11 +141,15 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // enemy that walks between N points back and forth
             // enemy that chases player
 
+            // render tiles as textures        
+            // render player as texture
+
             // assets req
             //  bullets ?
-            //  new sounds: fire, explosion, ufo sound, enemy movement sound
-            //  explode
-            //  tank
+            //  new sounds: fire, explosion
+            //  explode            
+            // tile textures
+            // character texture and animations
 
             static float x1_ = 0.0f;
             static float y1_ = 0.0f;
@@ -506,9 +516,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
 
             // simulate player motion
-            // do collision detection here
-
-            // TODO: bug when fall off ledge, then can cling to side of wall
+            // do collision detection here            
 
             static bool playerIsGrounded = false;
             float fallDistance = 0.1f / 60.0f;
@@ -577,6 +585,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                                                  tilePos, map[i][j].tileWidth, map[i][j].tileWidth))
                                     {
                                         noCollisionsX = false;
+                                        checkForFall = true;
                                     }
 
                                     v2 nextPositionYOnly = v2(player.pos.x, nextPlayerPos.y);
@@ -619,7 +628,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // simulate camera motion
             // follow player
             static float t = 0;
-
             if (main_camera.pos.within_radius(0.01f, player.pos))
             {
                 t = 0;
@@ -631,12 +639,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     t = 1;
                 }
-            }
-
-            v2 lastMainCameraPos = main_camera.pos;
-
-            main_camera.pos.x = lastMainCameraPos.x + t * (player.pos.x - lastMainCameraPos.x);
-            main_camera.pos.y = lastMainCameraPos.y + t * (player.pos.y - lastMainCameraPos.y);
+            }            
+            main_camera.pos = main_camera.pos.lerp_to(player.pos, t);
 
             struct projectile
             {
@@ -949,7 +953,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     map_info m = map[i][j];
                     float w = m.MapWidthInUnits();
-                    float camH = 2.0f;
+                    float camH = 2.0f + 0.1f;
                     float camW = camH * (float)window.width / (float)window.height;
                     bool test_success = AABBTest(m.x + w / 2, m.y + w / 2, w, w,
                                                  main_camera.pos.x, main_camera.pos.y, camW, camH);
