@@ -127,6 +127,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // enemy explode animation on death
             // enemies shoot down projectiles
             // ^^^ need to turn projectile code into supporting multiple projectiles
+            
+            // static enemy
+            // walking back and forth enemy between 2 points
+            // enemy that falls off ledge
+            // enemy that crawls around walls
+            // enemy that walks between N points back and forth
+            // enemy that chases player
 
             // assets req
             //  bullets ?
