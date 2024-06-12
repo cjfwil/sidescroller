@@ -570,14 +570,7 @@ private:
             {DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(1, 1)},
             {DirectX::XMFLOAT2(-0.5f, -0.5f), DirectX::XMFLOAT2(0, 0)},
             {DirectX::XMFLOAT2(0.5f, -0.5f), DirectX::XMFLOAT2(1, 0)},
-        };
-
-        // DirectX::XMFLOAT2 vertices[] = {
-        //     DirectX::XMFLOAT2(-0.5f, 0.5f),
-        //     DirectX::XMFLOAT2(0.5f, 0.5f),
-        //     DirectX::XMFLOAT2(-0.5f, -0.5f),
-        //     DirectX::XMFLOAT2(0.5f, -0.5f),
-        // };
+        };        
 
         // Create vertex buffer:
 

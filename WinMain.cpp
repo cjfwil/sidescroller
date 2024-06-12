@@ -376,20 +376,28 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
             //
 
+            // TODO: separating tileset
+            // - write new shader (allow different shaders to be loaded)
+            // - allow different "game textures"? "tileset texture"
+            // - no visible switch in tile-data
+            // - tile_data change colour to index ushort16
+            // - 2d texture array for tileset???
+
             // ****tilemaps begin****
             // setup tilemap data
             struct tile_data
             {
                 // v2 pos; // fill out on creation read only
-                u_char r, g, b;
-                uint8_t visible = 0b1;
+                // u_char r, g, b;
+                // uint8_t visible = 0b1;
+                u_char index;
             };
 
             // TODO: Pull out tilemap stuff into own thing
 
             // TODO: allocate tile memory properly so we can get 512 chunks
-            static const float globalTileWidth = 0.0833333333333333f; //32 pixels for 768 height window
-            static const int unsigned globalChunkWidthInTiles = 32; // in tiles
+            static const float globalTileWidth = 32.0f / 768.0f * 2.0f; // 32 pixels for 768 height window
+            static const int unsigned globalChunkWidthInTiles = 16;     // in tiles
             struct chunk_info
             {
                 bool init = false;
@@ -405,85 +413,49 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             };
 
             // TODO: Get rid of these as constants and make them adjustable
-            static const int mapNumX = 2;
-            static const int mapNumY = 2;
-            static bool mapsInit = false;
+            static const int chunkNumX = 16;
+            static const int chunkNumY = 16;
 
-            // makes up entire world of tiles
-            struct map_set
+            struct tilemap
             {
-                chunk_info maps[mapNumX][mapNumY];
-            };
+                bool initialised = false;
+                chunk_info map[chunkNumX][chunkNumY];
 
-            static chunk_info map[mapNumX][mapNumY];
-            // static map_set map;
-            if (!mapsInit)
-            {
-                for (int j = 0; j < mapNumY; ++j)
+                // TODO: load from some kind of on disk data
+                void setup()
                 {
-                    for (int i = 0; i < mapNumX; ++i)
+                    if (!initialised)
                     {
-                        if (!map[i][j].init)
+                        for (int j = 0; j < chunkNumY; ++j)
                         {
-
-                            // map[i][j].tileWidth = globalTileWidth;
-                            map[i][j].x = -(globalChunkWidthInTiles * globalTileWidth) / 2.0f + (i * globalTileWidth * globalChunkWidthInTiles);
-                            map[i][j].y = -(globalChunkWidthInTiles * globalTileWidth) / 2.0f + (j * globalTileWidth * globalChunkWidthInTiles);
-                            for (int x = 0; x < globalChunkWidthInTiles; ++x)
+                            for (int i = 0; i < chunkNumX; ++i)
                             {
-                                for (int y = 0; y < globalChunkWidthInTiles; ++y)
+                                if (!map[i][j].init)
                                 {
-                                    tile_data tile = {};
-                                    // tile.visible = (x % 2 == 0) ^ (y % 2 == 0);
-                                    // tile.visible = true;
-                                    // tile.r = (rand() % 256) / 255.0f;
-                                    // tile.g = (rand() % 256) / 255.0f;
-                                    // tile.b = (rand() % 256) / 255.0f;
-                                    tile.r = (rand() % 256);
-                                    tile.g = (rand() % 256);
-                                    tile.b = (rand() % 256);
-                                    map[i][j].data[x][y] = tile;
+                                    map[i][j].x = -(globalChunkWidthInTiles * globalTileWidth) / 2.0f + (i * globalTileWidth * globalChunkWidthInTiles);
+                                    map[i][j].y = -(globalChunkWidthInTiles * globalTileWidth) / 2.0f + (j * globalTileWidth * globalChunkWidthInTiles);
+                                    for (int x = 0; x < globalChunkWidthInTiles; ++x)
+                                    {
+                                        for (int y = 0; y < globalChunkWidthInTiles; ++y)
+                                        {
+                                            tile_data tile = {};
+                                            // tile.r = (rand() % 256);
+                                            // tile.g = (rand() % 256);
+                                            // tile.b = (rand() % 256);
+                                            tile.index = rand() % 256;
+                                            map[i][j].data[x][y] = tile;
+                                        }
+                                    }
                                 }
                             }
-                            // for (int x = 0; x < globalChunkWidthInTiles - 3; ++x)
-                            // {
-                            //     for (int y = 3; y < globalChunkWidthInTiles - 3; ++y)
-                            //     {
-                            //         map[i][j].data[x][y].visible = false;
-                            //     }
-                            // }
-                            // for (int x = 29; x < globalChunkWidthInTiles; ++x)
-                            // {
-                            //     for (int y = 29 - 6; y < globalChunkWidthInTiles; ++y)
-                            //     {
-                            //         map[i][j].data[x][y].visible = false;
-                            //     }
-                            // }
-
-                            // for (int x = 29; x < globalChunkWidthInTiles; ++x)
-                            // {
-                            //     for (int y = 0; y < 6; ++y)
-                            //     {
-                            //         map[i][j].data[x][y].visible = false;
-                            //     }
-                            // }
-
-                            // for (int x = 0; x < 3; ++x)
-                            // {
-                            //     for (int y = 6; y < globalChunkWidthInTiles - 6; ++y)
-                            //     {
-                            //         map[i][j].data[x][y].visible = true;
-                            //     }
-                            // }
-
-                            // map[i][j].data[5][3].visible = true;
-                            // map[i][j].data[5][4].visible = true;
-                            // map[i][j].init = true;
                         }
+                        initialised = true;
                     }
                 }
-                mapsInit = true;
-            }
+            };
+
+            static tilemap mainTilemap;
+            mainTilemap.setup();
 
             // **** tilemaps setup end ****
 
@@ -550,7 +522,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         b.anim.frames[1].point[1].y = y2;
 
                         b.width *= (x2 - x1) / 12.0f;
-                        // b.height *= (y2-y1)/16.0f;
 
                         enemies[x][y] = b;
                     }
@@ -615,9 +586,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // test against entire tilemap rectangle first
             // player collision against world map
 #if 0
-            for (int j = 0; j < mapNumY; ++j)
+            for (int j = 0; j < chunkNumY; ++j)
             {
-                for (int i = 0; i < mapNumX; ++i)
+                for (int i = 0; i < chunkNumX; ++i)
                 {
                     bool interactingWithMap = false;
                     if (AABBTest(nextPlayerPos.x, nextPlayerPos.y, player.width, player.height,
@@ -1033,12 +1004,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             //     aabb boxes[mapPwr] = {};
             //     // boxes[0].pos = v2();
-            //     // boxes[0].w = mapNumX * globalTileWidth * globalChunkWidthInTiles;
-            //     // boxes[0].h = mapNumY * globalTileWidth * globalChunkWidthInTiles;
+            //     // boxes[0].w = chunkNumX * globalTileWidth * globalChunkWidthInTiles;
+            //     // boxes[0].h = chunkNumY * globalTileWidth * globalChunkWidthInTiles;
 
             //     // boxes[1].pos = v2(0, 0) - ;
-            //     // boxes[1].w = mapNumX * globalTileWidth * globalChunkWidthInTiles;
-            //     // boxes[1].h = mapNumY * globalTileWidth * globalChunkWidthInTiles;
+            //     // boxes[1].w = chunkNumX * globalTileWidth * globalChunkWidthInTiles;
+            //     // boxes[1].h = chunkNumY * globalTileWidth * globalChunkWidthInTiles;
 
             //     initialiseBoxesDataStructure = true;
             // }
@@ -1048,8 +1019,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             //     for (int l = 0; l < k; ++l)
             //     {
             //         aabb box = {};
-            //         box.w = mapNumX * globalTileWidth * globalChunkWidthInTiles;
-            //         box.h = mapNumY * globalTileWidth * globalChunkWidthInTiles;
+            //         box.w = chunkNumX * globalTileWidth * globalChunkWidthInTiles;
+            //         box.h = chunkNumY * globalTileWidth * globalChunkWidthInTiles;
             //         box.pos.x = (box.w / k);
             //         box.pos.y = box.h / k;
             //     }
@@ -1068,19 +1039,20 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // endDrawX = min(endDrawX, globalChunkWidthInTiles);
             // endDrawY = min(endDrawY, globalChunkWidthInTiles);
 
-            static bool forceDrawEntireMap = true; //draw full map, less bug prone, use to check for issues
-            if (forceDrawEntireMap) {
+            static bool forceDrawEntireMap = true; // draw full map, less bug prone, use to check for issues
+            if (forceDrawEntireMap)
+            {
                 startDrawX = 0;
                 startDrawY = 0;
-                endDrawX = mapNumX;
-                endDrawY = mapNumY;
+                endDrawX = chunkNumX;
+                endDrawY = chunkNumY;
             }
 
             for (int j = startDrawY; j < endDrawY; ++j)
             {
                 for (int i = startDrawX; i < endDrawX; ++i)
                 {
-                    chunk_info m = map[i][j];
+                    chunk_info m = mainTilemap.map[i][j];
                     float w = m.globalChunkWidthInUnits();
                     bool test_success = AABBTest(m.x + w / 2, m.y + w / 2, w, w,
                                                  main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
@@ -1094,29 +1066,26 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                             for (int y = 0; y < globalChunkWidthInTiles; ++y)
                             {
                                 tile_data tile = m.data[x][y];
-                                if (tile.visible)
+                                float tileX = (x * globalTileWidth) + m.x;
+                                float tileY = (y * globalTileWidth) + m.y;
+                                test_success = AABBTest(tileX, tileY, globalTileWidth, globalTileWidth,
+                                                        main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
+                                if (test_success)
                                 {
-                                    float tileX = (x * globalTileWidth) + m.x;
-                                    float tileY = (y * globalTileWidth) + m.y;
-                                    test_success = AABBTest(tileX, tileY, globalTileWidth, globalTileWidth,
-                                                            main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
-                                    if (test_success)
-                                    {
-                                        // TODO: draw without alpha
-                                        renderer.DrawRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0, tile.r/255.0f, tile.g/255.0f,tile.b/255.0f);
+                                    // TODO: draw without alpha
+                                    renderer.DrawRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0, tile.index / 255.0f, tile.index / 255.0f, tile.index / 255.0f);
 
-                                        // renderer.DrawGameTextureRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0, 
-                                        //                                 96, 127 - 31, 127, 127);
-                                        // renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height, 
-                                        //                                 0, 0, 127 - 8, 17, 127);
-                                    }
+                                    // renderer.DrawGameTextureRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0,
+                                    //                              96, 127 - 31, 127, 127);
+                                    // renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height,
+                                    //                                 0, 0, 127 - 8, 17, 127);
                                 }
                             }
                         }
                     }
                 }
             }
-            //end of tilemap drawing
+            // end of tilemap drawing
 
             renderer.DrawRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y, player.width, player.height);
             if (playerProjectile.active)
