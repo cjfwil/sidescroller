@@ -121,7 +121,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     Win32Window &window = Win32Window::GetInstance();
 
     D3D11Renderer renderer = D3D11Renderer(window.hwnd);
-    renderer.LoadTextures(TRUE);
+    renderer.LoadTextures(TRUE, FALSE);
 
     XAudioRenderer xa = XAudioRenderer();
 
@@ -374,21 +374,23 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
                 shieldInit = true;
             }
+            //
 
+            // ****tilemaps begin****
             // setup tilemap data
             struct tile_data
             {
                 // v2 pos; // fill out on creation read only
                 u_char r, g, b;
-                bool visible = true;
+                uint8_t visible = 0b1;
             };
 
             // TODO: Pull out tilemap stuff into own thing
 
             // TODO: allocate tile memory properly so we can get 512 chunks
-            static const float globalTileWidth = 0.1f;
+            static const float globalTileWidth = 0.0833333333333333f; //32 pixels for 768 height window
             static const int unsigned globalChunkWidthInTiles = 32; // in tiles
-            struct map_info
+            struct chunk_info
             {
                 bool init = false;
                 float x = 0.0f, y = 0.0f; // TODO: make this refer to centre of tilemap? currently refers to centre of bottom left tile
@@ -402,19 +404,18 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 }
             };
 
-        
             // TODO: Get rid of these as constants and make them adjustable
-            static const int mapNumX = 256;
-            static const int mapNumY = 256;
+            static const int mapNumX = 2;
+            static const int mapNumY = 2;
             static bool mapsInit = false;
 
             // makes up entire world of tiles
             struct map_set
             {
-                map_info maps[mapNumX][mapNumY];
+                chunk_info maps[mapNumX][mapNumY];
             };
 
-            static map_info map[mapNumX][mapNumY];
+            static chunk_info map[mapNumX][mapNumY];
             // static map_set map;
             if (!mapsInit)
             {
@@ -483,6 +484,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 }
                 mapsInit = true;
             }
+
+            // **** tilemaps setup end ****
 
             static const int numenemysW = 1;
             static const int numenemysH = 1;
@@ -1051,20 +1054,33 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             //         box.pos.y = box.h / k;
             //     }
             // }
-            
-            
+
+            // start tilemap drawing
+            // TODO: devise method for zooming in and out? baking chunks? greedy meshing?
             int startDrawX = max((main_camera.pos.x - main_camera.camW / 2.0f) / (globalTileWidth * globalChunkWidthInTiles), 0);
             int startDrawY = max((main_camera.pos.y - main_camera.camH / 2.0f) / (globalTileWidth * globalChunkWidthInTiles), 0);
 
-            
-            int endDrawX = max((main_camera.pos.x + main_camera.camW / 2.0f) / (globalTileWidth * globalChunkWidthInTiles)+2, 0);
-            int endDrawY = max((main_camera.pos.y + main_camera.camH / 2.0f) / (globalTileWidth * globalChunkWidthInTiles)+2, 0);
+            int endDrawX = max((main_camera.pos.x + main_camera.camW / 2.0f) / (globalTileWidth * globalChunkWidthInTiles) + 2, 0);
+            int endDrawY = max((main_camera.pos.y + main_camera.camH / 2.0f) / (globalTileWidth * globalChunkWidthInTiles) + 2, 0);
+
+            // startDrawX = min(startDrawX, globalChunkWidthInTiles);
+            // startDrawY = min(startDrawY, globalChunkWidthInTiles);
+            // endDrawX = min(endDrawX, globalChunkWidthInTiles);
+            // endDrawY = min(endDrawY, globalChunkWidthInTiles);
+
+            static bool forceDrawEntireMap = true; //draw full map, less bug prone, use to check for issues
+            if (forceDrawEntireMap) {
+                startDrawX = 0;
+                startDrawY = 0;
+                endDrawX = mapNumX;
+                endDrawY = mapNumY;
+            }
 
             for (int j = startDrawY; j < endDrawY; ++j)
             {
                 for (int i = startDrawX; i < endDrawX; ++i)
                 {
-                    map_info m = map[i][j];
+                    chunk_info m = map[i][j];
                     float w = m.globalChunkWidthInUnits();
                     bool test_success = AABBTest(m.x + w / 2, m.y + w / 2, w, w,
                                                  main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
@@ -1085,14 +1101,22 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                                     test_success = AABBTest(tileX, tileY, globalTileWidth, globalTileWidth,
                                                             main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
                                     if (test_success)
-                                        renderer.DrawRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth,
-                                                          0, tile.r / 255.0f, tile.g / 255.0f, tile.b / 255.0f);
+                                    {
+                                        // TODO: draw without alpha
+                                        renderer.DrawRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0, tile.r/255.0f, tile.g/255.0f,tile.b/255.0f);
+
+                                        // renderer.DrawGameTextureRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0, 
+                                        //                                 96, 127 - 31, 127, 127);
+                                        // renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height, 
+                                        //                                 0, 0, 127 - 8, 17, 127);
+                                    }
                                 }
                             }
                         }
                     }
                 }
             }
+            //end of tilemap drawing
 
             renderer.DrawRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y, player.width, player.height);
             if (playerProjectile.active)

@@ -36,7 +36,7 @@ ps_input vs_main(float2 pos: POSITION, float2 uv: TEXCOORD)
 float4 ps_main(ps_input input)
     : SV_TARGET
 {
-#if 1
+#if 0
     float texelsPerPixel = texSize / 1024.0f;
     // float texelsPerPixel = 1024.0f/texSize;
     float2 locWithinTexel = frac(input.uv * texSize);

@@ -273,13 +273,20 @@ public:
         return (result);
     }
 
-    HRESULT LoadTextures(BOOL enableAlphaBlend=FALSE)
+    HRESULT LoadTextures(BOOL enableAlphaBlend = FALSE, BOOL enableLinearFilter = TRUE)
     {
         fontTexture = LoadTexture("assets/bitmap_font.png");
         gameTexture = LoadTexture("assets/space_invaders.png");
 
         D3D11_SAMPLER_DESC samplerDesc = {};
-        samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; // linear is for allowing sub pixel sampling (to come, need alpha blending first)
+        if (enableLinearFilter)
+        {
+            samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR; // linear is for allowing sub pixel sampling (to come, need alpha blending first)
+        }
+        else
+        {
+            samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+        }
         samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
         samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -288,7 +295,7 @@ public:
         samplerDesc.MinLOD = 0.0f;
         samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-        D3D11_BLEND_DESC blendDesc = {};        
+        D3D11_BLEND_DESC blendDesc = {};
         blendDesc.RenderTarget[0].BlendEnable = enableAlphaBlend;
         blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
         blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
