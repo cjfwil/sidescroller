@@ -19,6 +19,12 @@ struct d3d_texture_info
     ID3D11ShaderResourceView *shaderResourceView;
 };
 
+struct d3d_tileset_texture
+{
+    int tileWidth = 32;
+    d3d_texture_info textureInfo;
+};
+
 __declspec(align(16)) struct ConstantBufferStruct
 {
     float view[16] = {1, 0, 0, 0,
@@ -161,11 +167,16 @@ public:
     // TODO: Arguments for this: pass in two points to crop the image
     //  store knowledge of the game texture and just allow pixel positions to be passed
     void DrawGameTextureRect(float x = 0, float y = 0, float w = 1, float h = 1, float theta = 0,
-                             int uvX1 = 0, int uvY1 = 0, int uvX2 = 0, int uvY2 = 0)
+                             int uvX1 = 0, int uvY1 = 0, int uvX2 = 0, int uvY2 = 0, d3d_texture_info *txt = NULL)
     {
+        d3d_texture_info *t = txt;
+        if (txt == NULL)
+        {
+            t = &gameTexture;
+        }
         // TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
-        float xScale = (uvX2 - uvX1) / (float)gameTexture.width;
-        float yScale = (uvY2 - uvY1) / (float)gameTexture.height;
+        float xScale = (uvX2 - uvX1) / (float)t->width;
+        float yScale = (uvY2 - uvY1) / (float)t->height;
         if (uvX1 == uvX2)
             xScale = 1.0f;
         if (uvY1 == uvY2)
@@ -175,12 +186,12 @@ public:
         texRenderConstantBufferData.offset[1] = y;
         texRenderConstantBufferData.uvScale[0] = xScale;
         texRenderConstantBufferData.uvScale[1] = yScale;
-        texRenderConstantBufferData.uvOffset[0] = uvX1 / (float)gameTexture.width;
-        texRenderConstantBufferData.uvOffset[1] = uvY1 / (float)gameTexture.height;
+        texRenderConstantBufferData.uvOffset[0] = uvX1 / (float)t->width;
+        texRenderConstantBufferData.uvOffset[1] = uvY1 / (float)t->height;
         texRenderConstantBufferData.scale[0] = w;
         texRenderConstantBufferData.scale[1] = h;
         texRenderConstantBufferData.rot = theta;
-        texRenderConstantBufferData.texSize = 128.0f;
+        texRenderConstantBufferData.texSize = (float)t->width;
 
         pContext->UpdateSubresource(m_pTexRenderConstantBuffer, 0, nullptr, &texRenderConstantBufferData, 0, 0);
 
@@ -195,7 +206,7 @@ public:
         pContext->VSSetConstantBuffers(0, 1, &m_pTexRenderConstantBuffer);
         pContext->PSSetConstantBuffers(0, 1, &m_pTexRenderConstantBuffer);
         pContext->PSSetShader(m_pPixelShader[1], nullptr, 0);
-        pContext->PSSetShaderResources(0u, 1u, &gameTexture.shaderResourceView);
+        pContext->PSSetShaderResources(0u, 1u, &t->shaderResourceView);
         pContext->PSSetSamplers(0, 1, &samplerState);
         pContext->DrawIndexed(m_indexCount, 0, 0);
 
@@ -203,6 +214,16 @@ public:
         texRenderConstantBufferData.offset[1] = 0.0f;
         texRenderConstantBufferData.scale[0] = 1.0f;
         texRenderConstantBufferData.scale[1] = 1.0f;
+    }
+
+    void DrawTile(float x, float y, float w, float h, uint8_t index)
+    {
+        int numTilesInX = tilesetTexture.textureInfo.width / tilesetTexture.tileWidth;
+        int x_index = (index % numTilesInX)*tilesetTexture.tileWidth;
+        int y_index = (index / numTilesInX)*tilesetTexture.tileWidth;
+        int x_index_end = x_index + tilesetTexture.tileWidth;
+        int y_index_end = y_index + tilesetTexture.tileWidth;
+        DrawGameTextureRect(x, y, w, h, 0, x_index, y_index, x_index_end, y_index_end, &(tilesetTexture.textureInfo));
     }
 
     void StartDraw(float r = 0.098f, float g = 0.439f, float b = 0.439f)
@@ -273,10 +294,11 @@ public:
         return (result);
     }
 
-    HRESULT LoadTextures(BOOL enableAlphaBlend = FALSE, BOOL enableLinearFilter = TRUE)
+    HRESULT LoadTextures(BOOL enableAlphaBlend = FALSE, BOOL enableLinearFilter = FALSE)
     {
         fontTexture = LoadTexture("assets/bitmap_font.png");
         gameTexture = LoadTexture("assets/space_invaders.png");
+        tilesetTexture.textureInfo = LoadTexture("assets/tileset_image.png");
 
         D3D11_SAMPLER_DESC samplerDesc = {};
         if (enableLinearFilter)
@@ -314,6 +336,7 @@ public:
 private:
     d3d_texture_info fontTexture;
     d3d_texture_info gameTexture;
+    d3d_tileset_texture tilesetTexture;
     ID3D11SamplerState *samplerState;
     ID3D11BlendState *blendState;
 
@@ -570,7 +593,7 @@ private:
             {DirectX::XMFLOAT2(0.5f, 0.5f), DirectX::XMFLOAT2(1, 1)},
             {DirectX::XMFLOAT2(-0.5f, -0.5f), DirectX::XMFLOAT2(0, 0)},
             {DirectX::XMFLOAT2(0.5f, -0.5f), DirectX::XMFLOAT2(1, 0)},
-        };        
+        };
 
         // Create vertex buffer:
 

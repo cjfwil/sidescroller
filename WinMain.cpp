@@ -184,7 +184,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 v2 pos;
                 v2 velocity;
-                float camH = 2.0f + 0.1f;
+                float camH = 2.0f + 0.1f; //plus globalTileWidth/2
                 float camW = camH;
             } main_camera;
             main_camera.camW = main_camera.camH * (float)window.width / (float)window.height;
@@ -390,7 +390,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 // v2 pos; // fill out on creation read only
                 // u_char r, g, b;
                 // uint8_t visible = 0b1;
-                u_char index;
+                uint8_t index;
             };
 
             // TODO: Pull out tilemap stuff into own thing
@@ -1073,8 +1073,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                                 if (test_success)
                                 {
                                     // TODO: draw without alpha
-                                    renderer.DrawRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0, tile.index / 255.0f, tile.index / 255.0f, tile.index / 255.0f);
-
+                                    // renderer.DrawRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0, tile.index / 255.0f, tile.index / 255.0f, tile.index / 255.0f);
+                                    renderer.DrawTile(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, tile.index);
                                     // renderer.DrawGameTextureRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0,
                                     //                              96, 127 - 31, 127, 127);
                                     // renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height,
