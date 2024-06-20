@@ -382,6 +382,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // - no visible switch in tile-data
             // - tile_data change colour to index ushort16
             // - 2d texture array for tileset???
+            // - reduce tile rendering draw calls
 
             // ****tilemaps begin****
             // setup tilemap data
@@ -413,8 +414,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             };
 
             // TODO: Get rid of these as constants and make them adjustable
-            static const int chunkNumX = 16;
-            static const int chunkNumY = 16;
+            static const int chunkNumX = 1;
+            static const int chunkNumY = 1;
 
             struct tilemap
             {
@@ -438,11 +439,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                                     {
                                         for (int y = 0; y < globalChunkWidthInTiles; ++y)
                                         {
-                                            tile_data tile = {};
-                                            // tile.r = (rand() % 256);
-                                            // tile.g = (rand() % 256);
-                                            // tile.b = (rand() % 256);
-                                            tile.index = rand() % 256;
+                                            tile_data tile = {};                                            
+                                            tile.index = 1;
                                             map[i][j].data[x][y] = tile;
                                         }
                                     }
@@ -456,7 +454,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             static tilemap mainTilemap;
             mainTilemap.setup();
-
             // **** tilemaps setup end ****
 
             static const int numenemysW = 1;
@@ -997,34 +994,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // draw tilemap
 
-            // camera AABB test against chunks
-
-            // static bool initialiseBoxesDataStructure = false;
-            // if (!initialiseBoxesDataStructure) {
-
-            //     aabb boxes[mapPwr] = {};
-            //     // boxes[0].pos = v2();
-            //     // boxes[0].w = chunkNumX * globalTileWidth * globalChunkWidthInTiles;
-            //     // boxes[0].h = chunkNumY * globalTileWidth * globalChunkWidthInTiles;
-
-            //     // boxes[1].pos = v2(0, 0) - ;
-            //     // boxes[1].w = chunkNumX * globalTileWidth * globalChunkWidthInTiles;
-            //     // boxes[1].h = chunkNumY * globalTileWidth * globalChunkWidthInTiles;
-
-            //     initialiseBoxesDataStructure = true;
-            // }
-
-            // for (int k = 1; k <= mapPwr; ++k)
-            // {
-            //     for (int l = 0; l < k; ++l)
-            //     {
-            //         aabb box = {};
-            //         box.w = chunkNumX * globalTileWidth * globalChunkWidthInTiles;
-            //         box.h = chunkNumY * globalTileWidth * globalChunkWidthInTiles;
-            //         box.pos.x = (box.w / k);
-            //         box.pos.y = box.h / k;
-            //     }
-            // }
+            // camera AABB test against chunks            
 
             // start tilemap drawing
             // TODO: devise method for zooming in and out? baking chunks? greedy meshing?
@@ -1072,13 +1042,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                                                         main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
                                 if (test_success)
                                 {
-                                    // TODO: draw without alpha
-                                    // renderer.DrawRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0, tile.index / 255.0f, tile.index / 255.0f, tile.index / 255.0f);
-                                    renderer.DrawTile(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, tile.index);
-                                    // renderer.DrawGameTextureRect(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, 0,
-                                    //                              96, 127 - 31, 127, 127);
-                                    // renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height,
-                                    //                                 0, 0, 127 - 8, 17, 127);
+                                    // TODO: draw without alpha                                    
+                                    renderer.DrawTile(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, tile.index);                                    
                                 }
                             }
                         }
