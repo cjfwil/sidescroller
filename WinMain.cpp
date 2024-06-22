@@ -394,7 +394,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // TODO: allocate tile memory properly so we can get 512 chunks
             static const float globalTileWidth = 32.0f / 768.0f * 2.0f; // 32 pixels for 768 height window
             static const int unsigned globalChunkWidthInTiles = 32;     // in tiles
-            static const int unsigned globalChunkHeightInTiles = 16;     // in tiles
+            static const int unsigned globalChunkHeightInTiles = 24;     // in tiles
             static float globalChunkWidthInUnits = globalChunkWidthInTiles * globalTileWidth;
             static float globalChunkHeightInUnits = globalChunkHeightInTiles * globalTileWidth;
             struct chunk_info
@@ -1030,11 +1030,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 for (int i = startDrawX; i < endDrawX; ++i)
                 {
-                    float xp = -globalChunkWidthInUnits / 2.0f + (i * globalChunkWidthInUnits);
-                    float yp = -globalChunkWidthInUnits / 2.0f + (j * globalChunkWidthInUnits);
+                    float xp = -globalChunkWidthInUnits / 2.0f + (i * globalChunkWidthInUnits) + globalTileWidth/2.0f;
+                    float yp = -globalChunkHeightInUnits / 2.0f + (j * globalChunkHeightInUnits) + globalTileWidth/2.0f;
                     chunk_info m = mainTilemap.map[i][j];                    
                     float w = globalChunkWidthInUnits;
-                    bool test_success = AABBTest(xp + w / 2, yp + w / 2, w, w,
+                    float h = globalChunkHeightInUnits;
+                    bool test_success = AABBTest(xp + w / 2, yp + h / 2, w, h,
                                                  main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
 
                     // bool test_success = true;
