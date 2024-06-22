@@ -23,6 +23,8 @@
 #include "src/Win32Window.hpp"
 #include "src/D3D11Renderer.hpp"
 
+#include "src/Win32FileIO.cpp"
+
 #include "src/XAudioRenderer.hpp"
 
 struct v2
@@ -147,10 +149,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         {
             // game code
             // TODO:
-            // enemy explode animation on death
-            // enemies shoot down projectiles
-            // ^^^ need to turn projectile code into supporting multiple projectiles
 
+            // background music
+
+            // tilemap editing
+            // therefore file i/o required
+
+            // metroid style game:
             // static enemy
             // walking back and forth enemy between 2 points
             // enemy that falls off ledge
@@ -158,18 +163,11 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // enemy that walks between N points back and forth
             // enemy that chases player
 
-            // acceleration structure for chunks so render and collision detect through chunks super fast
-
-            // convert to aabb structure
-
-            // render tiles as textures
             // render player as texture
 
             // assets req
             //  bullets ?
-            //  new sounds: fire, explosion
             //  explode
-            // tile textures
             // character texture and animations
 
             static float x1_ = 0.0f;
@@ -184,7 +182,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 v2 pos;
                 v2 velocity;
-                float camH = 2.0f + 0.1f; //plus globalTileWidth/2
+                float camH = 2.0f + 0.1f; // plus globalTileWidth/2
                 float camW = camH;
             } main_camera;
             main_camera.camW = main_camera.camH * (float)window.width / (float)window.height;
@@ -195,7 +193,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             };
 
             // we define a sprite animation as just a series of rectangles and a framerate
-            static const int spriteAnimMaxFrames = 64;
+            static const int spriteAnimMaxFrames = 8;
             struct sprite_animation
             {
                 // int frameRate = 60;
@@ -377,10 +375,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             //
 
             // TODO: separating tileset
-            // - write new shader (allow different shaders to be loaded)
-            // - allow different "game textures"? "tileset texture"
-            // - no visible switch in tile-data
-            // - tile_data change colour to index ushort16
+            // - write new shader (allow different shaders to be loaded)?
             // - 2d texture array for tileset???
             // - reduce tile rendering draw calls
 
@@ -391,26 +386,24 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 // v2 pos; // fill out on creation read only
                 // u_char r, g, b;
                 // uint8_t visible = 0b1;
-                uint8_t index;
+                uint8_t tileIndex;
             };
 
             // TODO: Pull out tilemap stuff into own thing
 
             // TODO: allocate tile memory properly so we can get 512 chunks
             static const float globalTileWidth = 32.0f / 768.0f * 2.0f; // 32 pixels for 768 height window
-            static const int unsigned globalChunkWidthInTiles = 16;     // in tiles
+            static const int unsigned globalChunkWidthInTiles = 32;     // in tiles
+            static const int unsigned globalChunkHeightInTiles = 16;     // in tiles
+            static float globalChunkWidthInUnits = globalChunkWidthInTiles * globalTileWidth;
+            static float globalChunkHeightInUnits = globalChunkHeightInTiles * globalTileWidth;
             struct chunk_info
             {
-                bool init = false;
-                float x = 0.0f, y = 0.0f; // TODO: make this refer to centre of tilemap? currently refers to centre of bottom left tile
+                // bool init = false;
+                // float x = 0.0f, y = 0.0f; // TODO: make this refer to centre of tilemap? currently refers to centre of bottom left tile
                 // float tileWidth = 1.0f;
-                bool tileDataAllocated = false;
-                tile_data data[globalChunkWidthInTiles][globalChunkWidthInTiles];
-
-                inline float globalChunkWidthInUnits()
-                {
-                    return (globalChunkWidthInTiles * globalTileWidth);
-                }
+                // bool tileDataAllocated = false;
+                tile_data data[globalChunkWidthInTiles][globalChunkHeightInTiles];
             };
 
             // TODO: Get rid of these as constants and make them adjustable
@@ -419,41 +412,61 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             struct tilemap
             {
-                bool initialised = false;
+                // bool initialised = false;
                 chunk_info map[chunkNumX][chunkNumY];
 
-                // TODO: load from some kind of on disk data
-                void setup()
-                {
-                    if (!initialised)
-                    {
-                        for (int j = 0; j < chunkNumY; ++j)
-                        {
-                            for (int i = 0; i < chunkNumX; ++i)
-                            {
-                                if (!map[i][j].init)
-                                {
-                                    map[i][j].x = -(globalChunkWidthInTiles * globalTileWidth) / 2.0f + (i * globalTileWidth * globalChunkWidthInTiles);
-                                    map[i][j].y = -(globalChunkWidthInTiles * globalTileWidth) / 2.0f + (j * globalTileWidth * globalChunkWidthInTiles);
-                                    for (int x = 0; x < globalChunkWidthInTiles; ++x)
-                                    {
-                                        for (int y = 0; y < globalChunkWidthInTiles; ++y)
-                                        {
-                                            tile_data tile = {};                                            
-                                            tile.index = 1;
-                                            map[i][j].data[x][y] = tile;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        initialised = true;
-                    }
-                }
+                // TODO: load from some kind of on disk data? CSV file?
+                // void setup()
+                // {
+                //     if (!initialised)
+                //     {
+
+                //         tilemap* tm = (tilemap*)(mapFile.data);
+
+                //         for (int j = 0; j < chunkNumY; ++j)
+                //         {
+                //             for (int i = 0; i < chunkNumX; ++i)
+                //             {
+
+                //             }
+                //         }
+
+                //         // generate random map
+                //         // for (int j = 0; j < chunkNumY; ++j)
+                //         // {
+                //         //     for (int i = 0; i < chunkNumX; ++i)
+                //         //     {
+                //         //         if (!map[i][j].init)
+                //         //         {
+                //         //             map[i][j].x = -(globalChunkWidthInTiles * globalTileWidth) / 2.0f + (i * globalTileWidth * globalChunkWidthInTiles);
+                //         //             map[i][j].y = -(globalChunkHeightInTiles * globalTileWidth) / 2.0f + (j * globalTileWidth * globalChunkHeightInTiles);
+                //         //             for (int x = 0; x < globalChunkWidthInTiles; ++x)
+                //         //             {
+                //         //                 for (int y = 0; y < globalChunkHeightInTiles; ++y)
+                //         //                 {
+                //         //                     tile_data tile = {};
+                //         //                     tile.tileIndex = rand() % 4;
+                //         //                     map[i][j].data[x][y] = tile;
+                //         //                 }
+                //         //             }
+                //         //         }
+                //         //     }
+                //         // }
+                //         initialised = true;
+                //     }
+                // }
             };
 
-            static tilemap mainTilemap;
-            mainTilemap.setup();
+            // win32_file mapFile = Win32FileRead("game/map.bin");
+            // static tilemap mainTilemap = *((tilemap*)mapFile.data);
+            // mainTilemap.setup();
+            static tilemap mainTilemap = {};
+
+            static bool writtenToDisk = false;
+            if (!writtenToDisk) {
+                Win32FileWrite("game/map.bin",&mainTilemap, sizeof(mainTilemap));
+                writtenToDisk = true;
+            }
             // **** tilemaps setup end ****
 
             static const int numenemysW = 1;
@@ -589,8 +602,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     bool interactingWithMap = false;
                     if (AABBTest(nextPlayerPos.x, nextPlayerPos.y, player.width, player.height,
-                                 map[i][j].x + (map[i][j].tileWidth * globalChunkWidthInTiles) / 2, map[i][j].y + (map[i][j].tileWidth * globalChunkWidthInTiles) / 2,
-                                 map[i][j].tileWidth * (globalChunkWidthInTiles + 1.0f), map[i][j].tileWidth * (globalChunkWidthInTiles + 1.0f)))
+                                 map[i][j].x + (map[i][j].tileWidth * globalChunkWidthInTiles) / 2, map[i][j].y + (map[i][j].tileWidth * globalChunkHeightInTiles) / 2,
+                                 map[i][j].tileWidth * (globalChunkWidthInTiles + 1.0f), map[i][j].tileWidth * (globalChunkHeightInTiles + 1.0f)))
                     {
                         interactingWithMap = true;
                     }
@@ -600,7 +613,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         // separate axis calculate
                         for (int x = 0; x < globalChunkWidthInTiles; ++x)
                         {
-                            for (int y = 0; y < globalChunkWidthInTiles; ++y)
+                            for (int y = 0; y < globalChunkHeightInTiles; ++y)
                             {
                                 tile_data tile = map[i][j].data[x][y];
                                 if (tile.visible)
@@ -718,7 +731,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 aniFrame = (aniFrame == 0) ? 1 : 0;
                 static unsigned int soundFramePitch = 0;
-                xa.Play(2, 1.0f + soundFramePitch / 12.0f); // enemy move
+                // xa.Play(2, 1.0f + soundFramePitch / 12.0f); // enemy move
                 if (soundFramePitch >= 3)
                 {
                     soundFramePitch = 0;
@@ -922,7 +935,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 playerProjectile.y = player.pos.y;
                 if (GetAsyncKeyState(VK_SPACE) & 0x8000)
                 {
-                    xa.Play(1, 1.0f);
+                    // xa.Play(1, 1.0f);
                     playerProjectile.x = player.pos.x;
                     playerProjectile.y = player.pos.y;
                     playerProjectile.active = true;
@@ -981,7 +994,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             if (hit)
             {
-                xa.Play(1, soundFreq);
+                // xa.Play(1, soundFreq);
                 hit = false;
             }
 
@@ -994,20 +1007,15 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // draw tilemap
 
-            // camera AABB test against chunks            
+            // camera AABB test against chunks
 
             // start tilemap drawing
             // TODO: devise method for zooming in and out? baking chunks? greedy meshing?
-            int startDrawX = max((main_camera.pos.x - main_camera.camW / 2.0f) / (globalTileWidth * globalChunkWidthInTiles), 0);
-            int startDrawY = max((main_camera.pos.y - main_camera.camH / 2.0f) / (globalTileWidth * globalChunkWidthInTiles), 0);
+            int startDrawX = max((main_camera.pos.x - main_camera.camW / 2.0f) / (globalChunkWidthInUnits), 0);
+            int startDrawY = max((main_camera.pos.y - main_camera.camH / 2.0f) / (globalChunkWidthInUnits), 0);
 
-            int endDrawX = max((main_camera.pos.x + main_camera.camW / 2.0f) / (globalTileWidth * globalChunkWidthInTiles) + 2, 0);
-            int endDrawY = max((main_camera.pos.y + main_camera.camH / 2.0f) / (globalTileWidth * globalChunkWidthInTiles) + 2, 0);
-
-            // startDrawX = min(startDrawX, globalChunkWidthInTiles);
-            // startDrawY = min(startDrawY, globalChunkWidthInTiles);
-            // endDrawX = min(endDrawX, globalChunkWidthInTiles);
-            // endDrawY = min(endDrawY, globalChunkWidthInTiles);
+            int endDrawX = max((main_camera.pos.x + main_camera.camW / 2.0f) / (globalChunkWidthInUnits) + 2, 0);
+            int endDrawY = max((main_camera.pos.y + main_camera.camH / 2.0f) / (globalChunkWidthInUnits) + 2, 0);
 
             static bool forceDrawEntireMap = true; // draw full map, less bug prone, use to check for issues
             if (forceDrawEntireMap)
@@ -1022,9 +1030,11 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 for (int i = startDrawX; i < endDrawX; ++i)
                 {
-                    chunk_info m = mainTilemap.map[i][j];
-                    float w = m.globalChunkWidthInUnits();
-                    bool test_success = AABBTest(m.x + w / 2, m.y + w / 2, w, w,
+                    float xp = -globalChunkWidthInUnits / 2.0f + (i * globalChunkWidthInUnits);
+                    float yp = -globalChunkWidthInUnits / 2.0f + (j * globalChunkWidthInUnits);
+                    chunk_info m = mainTilemap.map[i][j];                    
+                    float w = globalChunkWidthInUnits;
+                    bool test_success = AABBTest(xp + w / 2, yp + w / 2, w, w,
                                                  main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
 
                     // bool test_success = true;
@@ -1033,17 +1043,18 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         // render map m
                         for (int x = 0; x < globalChunkWidthInTiles; ++x)
                         {
-                            for (int y = 0; y < globalChunkWidthInTiles; ++y)
+                            for (int y = 0; y < globalChunkHeightInTiles; ++y)
                             {
                                 tile_data tile = m.data[x][y];
-                                float tileX = (x * globalTileWidth) + m.x;
-                                float tileY = (y * globalTileWidth) + m.y;
+
+                                float tileX = (x * globalTileWidth) + xp;
+                                float tileY = (y * globalTileWidth) + yp;
                                 test_success = AABBTest(tileX, tileY, globalTileWidth, globalTileWidth,
                                                         main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
                                 if (test_success)
                                 {
-                                    // TODO: draw without alpha                                    
-                                    renderer.DrawTile(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, tile.index);                                    
+                                    // TODO: draw without alpha
+                                    renderer.DrawTile(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, tile.tileIndex);
                                 }
                             }
                         }
