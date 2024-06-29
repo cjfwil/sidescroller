@@ -394,7 +394,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // TODO: allocate tile memory properly so we can get 512 chunks
             static const float globalTileWidth = 32.0f / 768.0f * 2.0f; // 32 pixels for 768 height window
             static const int unsigned globalChunkWidthInTiles = 32;     // in tiles
-            static const int unsigned globalChunkHeightInTiles = 24;     // in tiles
+            static const int unsigned globalChunkHeightInTiles = 24;    // in tiles
             static float globalChunkWidthInUnits = globalChunkWidthInTiles * globalTileWidth;
             static float globalChunkHeightInUnits = globalChunkHeightInTiles * globalTileWidth;
             struct chunk_info
@@ -407,13 +407,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             };
 
             // TODO: Get rid of these as constants and make them adjustable
-            static const int chunkNumX = 1;
-            static const int chunkNumY = 1;
+            static const int chunkNumX = 9;
+            static const int chunkNumY = 9;
 
             struct tilemap
             {
                 // bool initialised = false;
-                chunk_info map[chunkNumX][chunkNumY];
+                chunk_info map[chunkNumX][chunkNumY]; // TODO: allocate on heap Virtual Alloc, build chunkNumX, etc.. into struct so it loads it from disk rather than hardcoded
 
                 // TODO: load from some kind of on disk data? CSV file?
                 // void setup()
@@ -457,15 +457,29 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 // }
             };
 
-            // win32_file mapFile = Win32FileRead("game/map.bin");
-            // static tilemap mainTilemap = *((tilemap*)mapFile.data);
+            static win32_file mapFile = Win32FileRead("game/map.bin");
+            static tilemap mainTilemap = *((tilemap *)mapFile.data);
             // mainTilemap.setup();
-            static tilemap mainTilemap = {};
+            // static tilemap mainTilemap = {};
 
-            static bool writtenToDisk = false;
-            if (!writtenToDisk) {
-                Win32FileWrite("game/map.bin",&mainTilemap, sizeof(mainTilemap));
-                writtenToDisk = true;
+            POINT p;
+            static float mouseX = 0;
+            static float mouseY = 0;
+            if (GetCursorPos(&p))
+            {
+                if (ScreenToClient(window.hwnd, &p))
+                {
+                    //get mouse into world coords
+                    mouseX = (p.x / (float)window.width - 0.5f) * 2.0f * 4.0f/3.0f;
+                    mouseY = ((window.height-p.y) / (float)window.height - 0.5f) * 2.0f;
+                }
+            }
+
+            static bool writeToDisk = false;
+            if (writeToDisk)
+            {
+                Win32FileWrite("game/map.bin", &mainTilemap, sizeof(mainTilemap));
+                writeToDisk = false;
             }
             // **** tilemaps setup end ****
 
@@ -1003,7 +1017,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
             texRenderConstantBufferData.view[0] = (float)window.height / (float)window.width;
-            renderer.StartDraw(0, 0, 0);
+            renderer.StartDraw(0, 0, 0);            
 
             // draw tilemap
 
@@ -1030,9 +1044,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 for (int i = startDrawX; i < endDrawX; ++i)
                 {
-                    float xp = -globalChunkWidthInUnits / 2.0f + (i * globalChunkWidthInUnits) + globalTileWidth/2.0f;
-                    float yp = -globalChunkHeightInUnits / 2.0f + (j * globalChunkHeightInUnits) + globalTileWidth/2.0f;
-                    chunk_info m = mainTilemap.map[i][j];                    
+                    float xp = -globalChunkWidthInUnits / 2.0f + (i * globalChunkWidthInUnits) + globalTileWidth / 2.0f;
+                    float yp = -globalChunkHeightInUnits / 2.0f + (j * globalChunkHeightInUnits) + globalTileWidth / 2.0f;
+                    chunk_info m = mainTilemap.map[i][j];
                     float w = globalChunkWidthInUnits;
                     float h = globalChunkHeightInUnits;
                     bool test_success = AABBTest(xp + w / 2, yp + h / 2, w, h,
@@ -1052,6 +1066,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                                 float tileY = (y * globalTileWidth) + yp;
                                 test_success = AABBTest(tileX, tileY, globalTileWidth, globalTileWidth,
                                                         main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
+
+                                if (AABBTest(mouseX+main_camera.pos.x, mouseY+main_camera.pos.y, 0.1f, 0.1f, tileX, tileY, globalTileWidth, globalTileWidth)) {
+                                    test_success = false;
+                                }
                                 if (test_success)
                                 {
                                     // TODO: draw without alpha
@@ -1147,6 +1165,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             renderer.DrawFontRect(1.05f, 0.86667f, frameRate % 10, chW, chH);
             renderer.DrawFontRect(1.05f - chW, 0.86667f, (frameRate / 10) % 10, chW, chH);
             renderer.DrawFontRect(1.05f - 2 * chW, 0.86667f, (frameRate / 100) % 1000, chW, chH);
+
+            //cursor
+            renderer.DrawRect(mouseX, mouseY, 0.1f, 0.1f);
 
             frameCount++;
             renderer.pSwapChain->Present(1, 0);
