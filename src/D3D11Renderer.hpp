@@ -21,7 +21,7 @@ struct d3d_texture_info
 
 struct d3d_tileset_texture
 {
-    int tileWidth = 32;
+    int tileWidth = 16;
     d3d_texture_info textureInfo;
 };
 

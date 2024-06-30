@@ -92,6 +92,21 @@ struct v2
     }
 };
 
+// TODO: allocate tile memory properly so we can get 512 chunks
+// static const float globalTileWidth = 32.0f / 768.0f * 2.0f; // 32 pixels for 768 height window
+static const float globalTileWidth = 1 / 9.0f;                                                // 32 pixels for 768 height window
+static const int unsigned globalChunkHeightInTiles = 18;                                      // in tiles
+static const int unsigned globalChunkWidthInTiles = 18 * (4.0f / 3.0f); // in tiles
+static float globalChunkWidthInUnits = globalChunkWidthInTiles * globalTileWidth;
+static float globalChunkHeightInUnits = globalChunkHeightInTiles * globalTileWidth;
+// Gets bottom left hand corner of chunk in world coordinates
+static inline v2 GetChunkWorldPos(int i, int j)
+{
+    float xp = -globalChunkWidthInUnits / 2.0f + (i * globalChunkWidthInUnits) + globalTileWidth / 2.0f;
+    float yp = -globalChunkHeightInUnits / 2.0f + (j * globalChunkHeightInUnits) + globalTileWidth / 2.0f;
+    return v2(xp, yp);
+}
+
 static inline bool AABBTest(float x1, float y1, float w1, float h1,
                             float x2, float y2, float w2, float h2)
 {
@@ -123,7 +138,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     Win32Window &window = Win32Window::GetInstance();
 
     D3D11Renderer renderer = D3D11Renderer(window.hwnd);
-    renderer.LoadTextures(TRUE, FALSE);
+    renderer.LoadTextures(TRUE, TRUE);
 
     XAudioRenderer xa = XAudioRenderer();
 
@@ -149,6 +164,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
         {
             // game code
             // TODO:
+
+            // make clicking better, get keyboard messages
+            // text rendering improve
 
             // background music
 
@@ -180,7 +198,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             static struct
             {
-                v2 pos;
+                v2 pos = v2(globalChunkWidthInUnits*4, globalChunkHeightInUnits*4); //centre chunk
                 v2 velocity;
                 float camH = 2.0f + 0.1f; // plus globalTileWidth/2
                 float camW = camH;
@@ -391,12 +409,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // TODO: Pull out tilemap stuff into own thing
 
-            // TODO: allocate tile memory properly so we can get 512 chunks
-            static const float globalTileWidth = 32.0f / 768.0f * 2.0f; // 32 pixels for 768 height window
-            static const int unsigned globalChunkWidthInTiles = 32;     // in tiles
-            static const int unsigned globalChunkHeightInTiles = 24;    // in tiles
-            static float globalChunkWidthInUnits = globalChunkWidthInTiles * globalTileWidth;
-            static float globalChunkHeightInUnits = globalChunkHeightInTiles * globalTileWidth;
             struct chunk_info
             {
                 // bool init = false;
@@ -469,17 +481,17 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 if (ScreenToClient(window.hwnd, &p))
                 {
-                    //get mouse into world coords
-                    mouseX = (p.x / (float)window.width - 0.5f) * 2.0f * 4.0f/3.0f;
-                    mouseY = ((window.height-p.y) / (float)window.height - 0.5f) * 2.0f;
+                    // get mouse into world coords
+                    mouseX = (p.x / (float)window.width - 0.5f) * 2.0f * 4.0f / 3.0f;
+                    mouseY = ((window.height - p.y) / (float)window.height - 0.5f) * 2.0f;
                 }
             }
 
-            static bool writeToDisk = false;
-            if (writeToDisk)
+            static bool writeGameMapToDisk = false;
+            if (writeGameMapToDisk)
             {
                 Win32FileWrite("game/map.bin", &mainTilemap, sizeof(mainTilemap));
-                writeToDisk = false;
+                writeGameMapToDisk = false;
             }
             // **** tilemaps setup end ****
 
@@ -717,6 +729,67 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 main_camera.pos.x += 1.0f / 60.0f;
             }
 #endif
+
+            static int editingTileX = -1;
+            static int editingTileY = -1;
+            static int editModeChooseTile = 3;
+
+            if (GetAsyncKeyState(0x30 + 0) & 0x8000)
+            {
+                editModeChooseTile = 0;
+            }
+            if (GetAsyncKeyState(0x30 + 1) & 0x8000)
+            {
+                editModeChooseTile = 1;
+            }
+            
+            if (GetAsyncKeyState(0x30 + 3) & 0x8000)
+            {
+                editModeChooseTile = 3;
+            }
+            if (GetAsyncKeyState(0x30 + 4) & 0x8000)
+            {
+                editModeChooseTile = 4;
+            }
+
+            if (GetAsyncKeyState(0x30 + 5) & 0x8000)
+            {
+                editModeChooseTile = 0x40;
+            }
+
+            // tilemap edit code
+            if ((GetKeyState(VK_LBUTTON) & 0x100) != 0)
+            {
+                v2 mouseInWorld = v2(mouseX, mouseY) + main_camera.pos;
+                for (int i = 0; i < chunkNumX; ++i)
+                {
+                    for (int j = 0; j < chunkNumY; ++j)
+                    {
+                        v2 chunkPos = GetChunkWorldPos(i, j);
+                        v2 chunkCentre = chunkPos + v2(globalChunkWidthInUnits / 2.0f, globalChunkHeightInUnits / 2.0f);
+
+                        if (AABBTest(chunkCentre, globalChunkWidthInUnits, globalChunkHeightInUnits,
+                                     mouseInWorld, 0, 0))
+                        {
+                            chunk_info chunk = mainTilemap.map[i][j];
+                            for (int x = 0; x < globalChunkWidthInTiles; ++x)
+                            {
+                                for (int y = 0; y < globalChunkHeightInTiles; ++y)
+                                {
+
+                                    if (AABBTest(chunkPos + v2(x, y) * globalTileWidth, globalTileWidth, globalTileWidth,
+                                                 mouseInWorld, 0, 0))
+                                    {
+                                        chunk.data[x][y].tileIndex = editModeChooseTile;
+                                        writeGameMapToDisk = true;
+                                    }
+                                }
+                            }
+                            mainTilemap.map[i][j] = chunk;
+                        }
+                    }
+                }
+            }
 
             struct projectile
             {
@@ -1017,7 +1090,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // draw game
             constantBufferData.view[0] = (float)window.height / (float)window.width;
             texRenderConstantBufferData.view[0] = (float)window.height / (float)window.width;
-            renderer.StartDraw(0, 0, 0);            
+            renderer.StartDraw(0, 0, 0);
 
             // draw tilemap
 
@@ -1026,10 +1099,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // start tilemap drawing
             // TODO: devise method for zooming in and out? baking chunks? greedy meshing?
             int startDrawX = max((main_camera.pos.x - main_camera.camW / 2.0f) / (globalChunkWidthInUnits), 0);
-            int startDrawY = max((main_camera.pos.y - main_camera.camH / 2.0f) / (globalChunkWidthInUnits), 0);
+            int startDrawY = max((main_camera.pos.y - main_camera.camH / 2.0f) / (globalChunkHeightInUnits), 0);
 
             int endDrawX = max((main_camera.pos.x + main_camera.camW / 2.0f) / (globalChunkWidthInUnits) + 2, 0);
-            int endDrawY = max((main_camera.pos.y + main_camera.camH / 2.0f) / (globalChunkWidthInUnits) + 2, 0);
+            int endDrawY = max((main_camera.pos.y + main_camera.camH / 2.0f) / (globalChunkHeightInUnits) + 2, 0);
 
             static bool forceDrawEntireMap = true; // draw full map, less bug prone, use to check for issues
             if (forceDrawEntireMap)
@@ -1044,13 +1117,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 for (int i = startDrawX; i < endDrawX; ++i)
                 {
-                    float xp = -globalChunkWidthInUnits / 2.0f + (i * globalChunkWidthInUnits) + globalTileWidth / 2.0f;
-                    float yp = -globalChunkHeightInUnits / 2.0f + (j * globalChunkHeightInUnits) + globalTileWidth / 2.0f;
-                    chunk_info m = mainTilemap.map[i][j];
                     float w = globalChunkWidthInUnits;
                     float h = globalChunkHeightInUnits;
-                    bool test_success = AABBTest(xp + w / 2, yp + h / 2, w, h,
-                                                 main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
+                    v2 chunkPos = GetChunkWorldPos(i, j);
+                    chunk_info m = mainTilemap.map[i][j];
+
+                    bool test_success = AABBTest(chunkPos + v2(w / 2.0f, h / 2.0f), w, h,
+                                                 main_camera.pos, main_camera.camW, main_camera.camH);
 
                     // bool test_success = true;
                     if (test_success)
@@ -1062,18 +1135,20 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                             {
                                 tile_data tile = m.data[x][y];
 
-                                float tileX = (x * globalTileWidth) + xp;
-                                float tileY = (y * globalTileWidth) + yp;
-                                test_success = AABBTest(tileX, tileY, globalTileWidth, globalTileWidth,
-                                                        main_camera.pos.x, main_camera.pos.y, main_camera.camW, main_camera.camH);
+                                v2 tilePos = chunkPos + (v2(x, y) * globalTileWidth);
+                                test_success = AABBTest(tilePos, globalTileWidth, globalTileWidth,
+                                                        main_camera.pos, main_camera.camW, main_camera.camH);
 
-                                if (AABBTest(mouseX+main_camera.pos.x, mouseY+main_camera.pos.y, 0.1f, 0.1f, tileX, tileY, globalTileWidth, globalTileWidth)) {
+                                // TODO: if edit mode
+                                if (AABBTest(mouseX + main_camera.pos.x, mouseY + main_camera.pos.y, 0, 0, tilePos.x, tilePos.y, globalTileWidth, globalTileWidth))
+                                {
+                                    renderer.DrawTile(tilePos.x - main_camera.pos.x, tilePos.y - main_camera.pos.y, globalTileWidth, globalTileWidth, editModeChooseTile);
                                     test_success = false;
                                 }
                                 if (test_success)
                                 {
                                     // TODO: draw without alpha
-                                    renderer.DrawTile(tileX - main_camera.pos.x, tileY - main_camera.pos.y, globalTileWidth, globalTileWidth, tile.tileIndex);
+                                    renderer.DrawTile(tilePos.x - main_camera.pos.x, tilePos.y - main_camera.pos.y, globalTileWidth, globalTileWidth, tile.tileIndex);
                                 }
                             }
                         }
@@ -1085,11 +1160,11 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             renderer.DrawRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y, player.width, player.height);
             if (playerProjectile.active)
                 renderer.DrawRect(playerProjectile.x - main_camera.pos.x, playerProjectile.y - main_camera.pos.y, playerProjectile.w, playerProjectile.h);
-            if (enemyProjectile.active)
-                renderer.DrawRect(enemyProjectile.x - main_camera.pos.x, enemyProjectile.y - main_camera.pos.y, enemyProjectile.w, enemyProjectile.h);
+            // if (enemyProjectile.active)
+            //     renderer.DrawRect(enemyProjectile.x - main_camera.pos.x, enemyProjectile.y - main_camera.pos.y, enemyProjectile.w, enemyProjectile.h);
 
-            if (ufo.alive)
-                renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height, 0, 0, 127 - 8, 17, 127);
+            // if (ufo.alive)
+            //     renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height, 0, 0, 127 - 8, 17, 127);
 
             float shieldW = (enemyDimScale * 0.5f) * 0.75f;
 
@@ -1104,9 +1179,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         sprite_animation anim = shield.anim;
                         clip_rect currentFrame = anim.frames[4 - shield.health];
 
-                        renderer.DrawGameTextureRect(shield.pos.x - main_camera.pos.x, shield.pos.y - main_camera.pos.y, shield.width, shield.height, 0,
-                                                     currentFrame.point[0].x, currentFrame.point[0].y,
-                                                     currentFrame.point[1].x, currentFrame.point[1].y);
+                        //renderer.DrawGameTextureRect(shield.pos.x - main_camera.pos.x, shield.pos.y - main_camera.pos.y, shield.width, shield.height, 0,
+                                                    //  currentFrame.point[0].x, currentFrame.point[0].y,
+                                                    //  currentFrame.point[1].x, currentFrame.point[1].y);
                     }
                 }
             }
@@ -1124,8 +1199,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         x2 = enemy.anim.frames[aniFrame].point[1].x;
                         y2 = enemy.anim.frames[aniFrame].point[1].y;
 
-                        renderer.DrawGameTextureRect(enemy.pos.x - main_camera.pos.x, enemy.pos.y - main_camera.pos.y, enemy.width, enemy.height, 0,
-                                                     x1, y1, x2, y2);
+                        // renderer.DrawGameTextureRect(enemy.pos.x - main_camera.pos.x, enemy.pos.y - main_camera.pos.y, enemy.width, enemy.height, 0,
+                                                    //  x1, y1, x2, y2);
                     }
                 }
             }
@@ -1166,8 +1241,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             renderer.DrawFontRect(1.05f - chW, 0.86667f, (frameRate / 10) % 10, chW, chH);
             renderer.DrawFontRect(1.05f - 2 * chW, 0.86667f, (frameRate / 100) % 1000, chW, chH);
 
-            //cursor
-            renderer.DrawRect(mouseX, mouseY, 0.1f, 0.1f);
+            // cursor
+            // renderer.DrawRect(mouseX, mouseY, 0.1f, 0.1f);
 
             frameCount++;
             renderer.pSwapChain->Present(1, 0);
