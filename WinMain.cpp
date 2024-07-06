@@ -167,11 +167,15 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // make clicking better, get keyboard messages
             // text rendering improve
+            // more data in tilemap for game collision??? 
+            // maybe second map which brings up translucent image of green squares where collisions are, overlayed on tile editing mode????
 
-            // background music
+            // maybe mario game???
 
-            // tilemap editing
-            // therefore file i/o required
+            // switch to array of 2d textures
+            
+
+            // background music                
 
             // metroid style game:
             // static enemy
@@ -397,6 +401,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // - 2d texture array for tileset???
             // - reduce tile rendering draw calls
 
+            // - tilemap info for collidable or not (maybe last bit of tile index is if collision?)
+            // - renable collision with character and rework it
+
             // ****tilemaps begin****
             // setup tilemap data
             struct tile_data
@@ -405,6 +412,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 // u_char r, g, b;
                 // uint8_t visible = 0b1;
                 uint8_t tileIndex;
+
+                bool isCollidable() {
+                    return (tileIndex == 0x1A);
+                }
             };
 
             // TODO: Pull out tilemap stuff into own thing
@@ -621,15 +632,16 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // test against entire tilemap rectangle first
             // player collision against world map
-#if 0
+#if 1
             for (int j = 0; j < chunkNumY; ++j)
             {
                 for (int i = 0; i < chunkNumX; ++i)
                 {
                     bool interactingWithMap = false;
-                    if (AABBTest(nextPlayerPos.x, nextPlayerPos.y, player.width, player.height,
-                                 map[i][j].x + (map[i][j].tileWidth * globalChunkWidthInTiles) / 2, map[i][j].y + (map[i][j].tileWidth * globalChunkHeightInTiles) / 2,
-                                 map[i][j].tileWidth * (globalChunkWidthInTiles + 1.0f), map[i][j].tileWidth * (globalChunkHeightInTiles + 1.0f)))
+                    chunk_info m =  mainTilemap.map[i][j];
+                    v2 chunkPos = GetChunkWorldPos(i, j);
+                    if (AABBTest(nextPlayerPos, player.width, player.height,
+                                 chunkPos + v2(globalChunkWidthInUnits / 2.0f, globalChunkHeightInUnits / 2.0f), globalChunkWidthInUnits+globalTileWidth, globalChunkHeightInUnits+globalTileWidth))
                     {
                         interactingWithMap = true;
                     }
@@ -641,13 +653,13 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         {
                             for (int y = 0; y < globalChunkHeightInTiles; ++y)
                             {
-                                tile_data tile = map[i][j].data[x][y];
-                                if (tile.visible)
+                                tile_data tile = m.data[x][y];
+                                if (tile.isCollidable())
                                 {
-                                    v2 tilePos = v2(x * map[i][j].tileWidth + map[i][j].x, y * map[i][j].tileWidth + map[i][j].y);
+                                    v2 tilePos = v2(x * globalTileWidth + chunkPos.x, y * globalTileWidth + chunkPos.y);
                                     v2 nextPositionXOnly = v2(nextPlayerPos.x, player.pos.y);
                                     if (AABBTest(nextPositionXOnly, player.width, player.height,
-                                                 tilePos, map[i][j].tileWidth, map[i][j].tileWidth))
+                                                 tilePos, globalTileWidth, globalTileWidth))
                                     {
                                         noCollisionsX = false;
                                         checkForFall = true;
@@ -655,7 +667,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
                                     v2 nextPositionYOnly = v2(player.pos.x, nextPlayerPos.y);
                                     bool test = AABBTest(nextPositionYOnly, player.width, player.height,
-                                                         tilePos, map[i][j].tileWidth, map[i][j].tileWidth);
+                                                         tilePos, globalTileWidth, globalTileWidth);
                                     if (test)
                                     {
                                         noCollisionsY = false;
@@ -691,7 +703,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
 #endif
 
-#if 0
+#if 1
             // simulate camera motion
             // follow player
             static float t = 0;
@@ -732,24 +744,24 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             static int editingTileX = -1;
             static int editingTileY = -1;
-            static int editModeChooseTile = 3;
+            static int editModeChooseTile = 0x1A;
 
             if (GetAsyncKeyState(0x30 + 0) & 0x8000)
             {
-                editModeChooseTile = 0;
+                editModeChooseTile = 0x11;
             }
             if (GetAsyncKeyState(0x30 + 1) & 0x8000)
             {
-                editModeChooseTile = 1;
+                editModeChooseTile = 0x14;
             }
             
             if (GetAsyncKeyState(0x30 + 3) & 0x8000)
             {
-                editModeChooseTile = 3;
+                editModeChooseTile = 0x17;
             }
             if (GetAsyncKeyState(0x30 + 4) & 0x8000)
             {
-                editModeChooseTile = 4;
+                editModeChooseTile = 0x1A;
             }
 
             if (GetAsyncKeyState(0x30 + 5) & 0x8000)
@@ -1123,9 +1135,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     chunk_info m = mainTilemap.map[i][j];
 
                     bool test_success = AABBTest(chunkPos + v2(w / 2.0f, h / 2.0f), w, h,
-                                                 main_camera.pos, main_camera.camW, main_camera.camH);
-
-                    // bool test_success = true;
+                                                 main_camera.pos, main_camera.camW, main_camera.camH);                    
                     if (test_success)
                     {
                         // render map m
