@@ -167,13 +167,21 @@ public:
     // TODO: Arguments for this: pass in two points to crop the image
     //  store knowledge of the game texture and just allow pixel positions to be passed
     void DrawGameTextureRect(float x = 0, float y = 0, float w = 1, float h = 1, float theta = 0,
-                             int uvX1 = 0, int uvY1 = 0, int uvX2 = 0, int uvY2 = 0, d3d_texture_info *txt = NULL)
+                             int uvX1 = 0, int uvY1 = 0, int uvX2 = 0, int uvY2 = 0, uint16_t frameNum=0, d3d_texture_info *txt = NULL)
     {
         d3d_texture_info *t = txt;
         if (txt == NULL)
         {
             t = &gameTexture;
         }
+        // change from bottom up to top down
+        // uvY1 = t->height - uvY1; 
+        // uvY2 = t->height - uvY2;
+
+        int frameW = uvX2-uvX1;
+        uvX1 += frameNum*(frameW);
+        uvX2 = uvX1 + frameW;
+        
         // TODO: New constant buffer type for rendering fonts, dont need view space matrix, only screen
         float xScale = (uvX2 - uvX1) / (float)t->width;
         float yScale = (uvY2 - uvY1) / (float)t->height;
@@ -223,7 +231,7 @@ public:
         int y_index = (index / numTilesInX)*tilesetTexture.tileWidth;
         int x_index_end = x_index + tilesetTexture.tileWidth;
         int y_index_end = y_index + tilesetTexture.tileWidth;
-        DrawGameTextureRect(x, y, w, h, 0, x_index, y_index, x_index_end, y_index_end, &(tilesetTexture.textureInfo));
+        DrawGameTextureRect(x, y, w, h, 0, x_index, y_index, x_index_end, y_index_end, 0, &(tilesetTexture.textureInfo));
     }
 
     void StartDraw(float r = 0.098f, float g = 0.439f, float b = 0.439f)
@@ -297,7 +305,7 @@ public:
     HRESULT LoadTextures(BOOL enableAlphaBlend = FALSE, BOOL enableLinearFilter = FALSE)
     {
         fontTexture = LoadTexture("assets/bitmap_font.png");
-        gameTexture = LoadTexture("assets/space_invaders.png");
+        gameTexture = LoadTexture("assets/warpgal-anim-sheet-alpha_0.png");
         tilesetTexture.textureInfo = LoadTexture("assets/tileset_image.png");
 
         D3D11_SAMPLER_DESC samplerDesc = {};

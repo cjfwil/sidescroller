@@ -1167,7 +1167,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
             // end of tilemap drawing
 
-            renderer.DrawRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y, player.width, player.height);
+            // renderer.DrawRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y, player.width, player.height);
+            renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y+0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432-192, 48, 432-144, (int)(frameCount/4.83f) % 10);
             if (playerProjectile.active)
                 renderer.DrawRect(playerProjectile.x - main_camera.pos.x, playerProjectile.y - main_camera.pos.y, playerProjectile.w, playerProjectile.h);
             // if (enemyProjectile.active)
@@ -1253,6 +1254,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // cursor
             // renderer.DrawRect(mouseX, mouseY, 0.1f, 0.1f);
+
+            
 
             frameCount++;
             renderer.pSwapChain->Present(1, 0);

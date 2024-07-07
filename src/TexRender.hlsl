@@ -42,6 +42,7 @@ float4 ps_main(ps_input input)
     float2 locWithinTexel = frac(input.uv * texSize);
     float2 interpAmount = clamp(locWithinTexel / texelsPerPixel, 0, 0.5f) + clamp((locWithinTexel - 1) / texelsPerPixel + 0.5f, 0, 0.5f);
     float2 finalTexCoords = (floor(input.uv * texSize) + interpAmount) / texSize;
+    // float2 finalTexCoords = input.uv;
     float4 clr = tex.Sample(samplerState, finalTexCoords);
 #else
     float4 clr = tex.Sample(samplerState, input.uv);
