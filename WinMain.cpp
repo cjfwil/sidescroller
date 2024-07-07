@@ -94,8 +94,8 @@ struct v2
 
 // TODO: allocate tile memory properly so we can get 512 chunks
 // static const float globalTileWidth = 32.0f / 768.0f * 2.0f; // 32 pixels for 768 height window
-static const float globalTileWidth = 1 / 9.0f;                                                // 32 pixels for 768 height window
-static const int unsigned globalChunkHeightInTiles = 18;                                      // in tiles
+static const float globalTileWidth = 1 / 9.0f;                          // 32 pixels for 768 height window
+static const int unsigned globalChunkHeightInTiles = 18;                // in tiles
 static const int unsigned globalChunkWidthInTiles = 18 * (4.0f / 3.0f); // in tiles
 static float globalChunkWidthInUnits = globalChunkWidthInTiles * globalTileWidth;
 static float globalChunkHeightInUnits = globalChunkHeightInTiles * globalTileWidth;
@@ -167,15 +167,14 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // make clicking better, get keyboard messages
             // text rendering improve
-            // more data in tilemap for game collision??? 
+            // more data in tilemap for game collision???
             // maybe second map which brings up translucent image of green squares where collisions are, overlayed on tile editing mode????
 
             // maybe mario game???
 
             // switch to array of 2d textures
-            
 
-            // background music                
+            // background music
 
             // metroid style game:
             // static enemy
@@ -202,7 +201,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             static struct
             {
-                v2 pos = v2(globalChunkWidthInUnits*4, globalChunkHeightInUnits*4); //centre chunk
+                v2 pos = v2(globalChunkWidthInUnits * 4, globalChunkHeightInUnits * 4); // centre chunk
                 v2 velocity;
                 float camH = 2.0f + 0.1f; // plus globalTileWidth/2
                 float camW = camH;
@@ -413,7 +412,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 // uint8_t visible = 0b1;
                 uint8_t tileIndex;
 
-                bool isCollidable() {
+                bool isCollidable()
+                {
                     return (tileIndex == 0x1A);
                 }
             };
@@ -597,7 +597,11 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static bool checkForFall = false;
             if (!playerIsGrounded || checkForFall)
             {
+                float terminalVelocity = 0.04f;                
                 player.velocity.y -= fallDistance;
+                if (player.velocity.y < -terminalVelocity) {
+                    player.velocity.y = -terminalVelocity;
+                }
                 checkForFall = false;
             }
             else
@@ -638,10 +642,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 for (int i = 0; i < chunkNumX; ++i)
                 {
                     bool interactingWithMap = false;
-                    chunk_info m =  mainTilemap.map[i][j];
+                    chunk_info m = mainTilemap.map[i][j];
                     v2 chunkPos = GetChunkWorldPos(i, j);
                     if (AABBTest(nextPlayerPos, player.width, player.height,
-                                 chunkPos + v2(globalChunkWidthInUnits / 2.0f, globalChunkHeightInUnits / 2.0f), globalChunkWidthInUnits+globalTileWidth, globalChunkHeightInUnits+globalTileWidth))
+                                 chunkPos + v2(globalChunkWidthInUnits / 2.0f, globalChunkHeightInUnits / 2.0f), globalChunkWidthInUnits + globalTileWidth, globalChunkHeightInUnits + globalTileWidth))
                     {
                         interactingWithMap = true;
                     }
@@ -754,7 +758,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 editModeChooseTile = 0x14;
             }
-            
+
             if (GetAsyncKeyState(0x30 + 3) & 0x8000)
             {
                 editModeChooseTile = 0x17;
@@ -1135,7 +1139,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                     chunk_info m = mainTilemap.map[i][j];
 
                     bool test_success = AABBTest(chunkPos + v2(w / 2.0f, h / 2.0f), w, h,
-                                                 main_camera.pos, main_camera.camW, main_camera.camH);                    
+                                                 main_camera.pos, main_camera.camW, main_camera.camH);
                     if (test_success)
                     {
                         // render map m
@@ -1168,7 +1172,24 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // end of tilemap drawing
 
             // renderer.DrawRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y, player.width, player.height);
-            renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y+0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432-192, 48, 432-144, (int)(frameCount/4.83f) % 10);
+            if (player.velocity.y != 0)
+            {
+                renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432 - 383, 48, 432 - 335);
+            }
+            else if (player.velocity.x > 0)
+            {
+                renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432 - 192, 48, 432 - 144, (int)(frameCount / 4.83f) % 10);
+            }
+            else if (player.velocity.x < 0)
+            {
+                renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 0, 48, 48, (int)(frameCount / 4.83f) % 10);
+            }
+            else if (player.velocity.y == 0 && player.velocity.x == 0)
+            {
+                renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432 - 143, 48, 432 - 99, (int)(frameCount / 13.95f) % 4);
+            }
+            
+
             if (playerProjectile.active)
                 renderer.DrawRect(playerProjectile.x - main_camera.pos.x, playerProjectile.y - main_camera.pos.y, playerProjectile.w, playerProjectile.h);
             // if (enemyProjectile.active)
@@ -1190,9 +1211,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         sprite_animation anim = shield.anim;
                         clip_rect currentFrame = anim.frames[4 - shield.health];
 
-                        //renderer.DrawGameTextureRect(shield.pos.x - main_camera.pos.x, shield.pos.y - main_camera.pos.y, shield.width, shield.height, 0,
-                                                    //  currentFrame.point[0].x, currentFrame.point[0].y,
-                                                    //  currentFrame.point[1].x, currentFrame.point[1].y);
+                        // renderer.DrawGameTextureRect(shield.pos.x - main_camera.pos.x, shield.pos.y - main_camera.pos.y, shield.width, shield.height, 0,
+                        //   currentFrame.point[0].x, currentFrame.point[0].y,
+                        //   currentFrame.point[1].x, currentFrame.point[1].y);
                     }
                 }
             }
@@ -1211,7 +1232,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         y2 = enemy.anim.frames[aniFrame].point[1].y;
 
                         // renderer.DrawGameTextureRect(enemy.pos.x - main_camera.pos.x, enemy.pos.y - main_camera.pos.y, enemy.width, enemy.height, 0,
-                                                    //  x1, y1, x2, y2);
+                        //  x1, y1, x2, y2);
                     }
                 }
             }
@@ -1254,8 +1275,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
             // cursor
             // renderer.DrawRect(mouseX, mouseY, 0.1f, 0.1f);
-
-            
 
             frameCount++;
             renderer.pSwapChain->Present(1, 0);

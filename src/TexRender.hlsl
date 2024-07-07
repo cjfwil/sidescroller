@@ -29,7 +29,7 @@ ps_input vs_main(float2 pos: POSITION, float2 uv: TEXCOORD)
 
     ps_input output;
     output.pos = mul(float4(pos, 0.0f, 1.0f), view);
-    output.uv = uv * uvScale + uvOffset;
+    output.uv = uv * uvScale + uvOffset;    
     return output;
 }
 
