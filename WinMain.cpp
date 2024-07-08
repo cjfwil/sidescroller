@@ -93,8 +93,8 @@ struct v2
 };
 
 // TODO: allocate tile memory properly so we can get 512 chunks
-// static const float globalTileWidth = 32.0f / 768.0f * 2.0f; // 32 pixels for 768 height window
-static const float globalTileWidth = 1 / 9.0f;                          // 32 pixels for 768 height window
+// static const float globalTileWidth = 32.0f / 768.0f * 3.0f; // 32 pixels for 768 height window
+static const float globalTileWidth = 1 / 9.0f;
 static const int unsigned globalChunkHeightInTiles = 18;                // in tiles
 static const int unsigned globalChunkWidthInTiles = 18 * (4.0f / 3.0f); // in tiles
 static float globalChunkWidthInUnits = globalChunkWidthInTiles * globalTileWidth;
@@ -597,9 +597,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static bool checkForFall = false;
             if (!playerIsGrounded || checkForFall)
             {
-                float terminalVelocity = 0.04f;                
+                float terminalVelocity = 0.04f;
                 player.velocity.y -= fallDistance;
-                if (player.velocity.y < -terminalVelocity) {
+                if (player.velocity.y < -terminalVelocity)
+                {
                     player.velocity.y = -terminalVelocity;
                 }
                 checkForFall = false;
@@ -1159,7 +1160,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                                     renderer.DrawTile(tilePos.x - main_camera.pos.x, tilePos.y - main_camera.pos.y, globalTileWidth, globalTileWidth, editModeChooseTile);
                                     test_success = false;
                                 }
-                                if (test_success)
+                                if (test_success /* && tile.isCollidable()*/)
                                 {
                                     // TODO: draw without alpha
                                     renderer.DrawTile(tilePos.x - main_camera.pos.x, tilePos.y - main_camera.pos.y, globalTileWidth, globalTileWidth, tile.tileIndex);
@@ -1172,23 +1173,42 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // end of tilemap drawing
 
             // renderer.DrawRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y, player.width, player.height);
+            static bool facingRight = false;
+            if (player.velocity.x != 0)
+                facingRight = (player.velocity.x > 0);
             if (player.velocity.y != 0)
             {
-                renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432 - 383, 48, 432 - 335);
+                if (facingRight)
+                {
+                    renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432 - 383, 48, 432 - 336);
+                }
+                else
+                {
+                    renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 96, 432 - 383, 96 + 48, 432 - 336);
+                }
             }
-            else if (player.velocity.x > 0)
+            else if (player.velocity.x != 0)
             {
-                renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432 - 192, 48, 432 - 144, (int)(frameCount / 4.83f) % 10);
+                if (facingRight)
+                {
+                    renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432 - 192, 48, 432 - 144, (int)(frameCount / 4.83f) % 10);
+                }
+                else
+                {
+                    renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 0, 48, 48, (int)(frameCount / 4.83f) % 10);
+                }
             }
-            else if (player.velocity.x < 0)
+            else if (player.velocity.y == 0 && player.velocity.x == 0) // idle
             {
-                renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 0, 48, 48, (int)(frameCount / 4.83f) % 10);
+                if (facingRight)
+                {
+                    renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432 - 143, 48, 432 - 99, (int)(frameCount / 13.95f) % 4);
+                }
+                else
+                {
+                    renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 288, 432 - 143, 288 + 48, 432 - 99, (int)(frameCount / 13.95f) % 4);
+                }
             }
-            else if (player.velocity.y == 0 && player.velocity.x == 0)
-            {
-                renderer.DrawGameTextureRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y + 0.04f, 48.0f / 768.0f * 4.0f, 48.0f / 768.0f * 4.0f, 0, 0, 432 - 143, 48, 432 - 99, (int)(frameCount / 13.95f) % 4);
-            }
-            
 
             if (playerProjectile.active)
                 renderer.DrawRect(playerProjectile.x - main_camera.pos.x, playerProjectile.y - main_camera.pos.y, playerProjectile.w, playerProjectile.h);
