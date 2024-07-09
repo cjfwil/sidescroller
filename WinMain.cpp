@@ -99,12 +99,20 @@ static const int unsigned globalChunkHeightInTiles = 18;                // in ti
 static const int unsigned globalChunkWidthInTiles = 18 * (4.0f / 3.0f); // in tiles
 static float globalChunkWidthInUnits = globalChunkWidthInTiles * globalTileWidth;
 static float globalChunkHeightInUnits = globalChunkHeightInTiles * globalTileWidth;
-// Gets bottom left hand corner of chunk in world coordinates
-static inline v2 GetChunkWorldPos(int i, int j)
+
+static inline v2 GetChunkCentreWorldPos(int i, int j)
 {
-    float xp = -globalChunkWidthInUnits / 2.0f + (i * globalChunkWidthInUnits) + globalTileWidth / 2.0f;
-    float yp = -globalChunkHeightInUnits / 2.0f + (j * globalChunkHeightInUnits) + globalTileWidth / 2.0f;
+    float xp = (i * globalChunkWidthInUnits) + globalTileWidth / 2.0f;
+    float yp = (j * globalChunkHeightInUnits) + globalTileWidth / 2.0f;
     return v2(xp, yp);
+}
+
+// Gets bottom left hand corner of chunk in world coordinates
+static inline v2 GetChunkCornerWorldPos(int i, int j)
+{
+    float xp = -globalChunkWidthInUnits / 2.0f;
+    float yp = -globalChunkHeightInUnits / 2.0f;    
+    return (v2(xp, yp) + GetChunkCentreWorldPos(i, j));       
 }
 
 static inline bool AABBTest(float x1, float y1, float w1, float h1,
@@ -145,7 +153,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
     ShowWindow(window.hwnd, SW_SHOWDEFAULT);
 
     unsigned int frameCount = 0;
-    float deltaTime = 0;
+    static float deltaTime = 0;
 
     bool quit = false;
     while (!quit)
@@ -238,7 +246,10 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 sprite_animation anim = {};
             };
 
-            static entity_info player = {v2(x1_, y1_), v2(0, 0), paddleWidth_, paddleHeight_};
+            // TODO: Get rid of these as constants and make them adjustable
+            static const int chunkNumX = 9;
+            static const int chunkNumY = 9;
+            static entity_info player = {GetChunkCentreWorldPos(chunkNumX / 2, chunkNumY / 2), v2(0, 0), paddleWidth_, paddleHeight_};
 
             static entity_info shields[4][3 * 4] = {};
 
@@ -428,10 +439,6 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 // bool tileDataAllocated = false;
                 tile_data data[globalChunkWidthInTiles][globalChunkHeightInTiles];
             };
-
-            // TODO: Get rid of these as constants and make them adjustable
-            static const int chunkNumX = 9;
-            static const int chunkNumY = 9;
 
             struct tilemap
             {
@@ -644,7 +651,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     bool interactingWithMap = false;
                     chunk_info m = mainTilemap.map[i][j];
-                    v2 chunkPos = GetChunkWorldPos(i, j);
+                    v2 chunkPos = GetChunkCornerWorldPos(i, j);
                     if (AABBTest(nextPlayerPos, player.width, player.height,
                                  chunkPos + v2(globalChunkWidthInUnits / 2.0f, globalChunkHeightInUnits / 2.0f), globalChunkWidthInUnits + globalTileWidth, globalChunkHeightInUnits + globalTileWidth))
                     {
@@ -719,7 +726,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             else
             {
                 t += deltaTime / 10000.0f;
-                if (t > 1)
+                // t += ((deltaTime> 0) ? deltaTime : 0) / 10000.0f;
+                if (t > 1 || t < 0)
                 {
                     t = 1;
                 }
@@ -782,7 +790,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     for (int j = 0; j < chunkNumY; ++j)
                     {
-                        v2 chunkPos = GetChunkWorldPos(i, j);
+                        v2 chunkPos = GetChunkCornerWorldPos(i, j);
                         v2 chunkCentre = chunkPos + v2(globalChunkWidthInUnits / 2.0f, globalChunkHeightInUnits / 2.0f);
 
                         if (AABBTest(chunkCentre, globalChunkWidthInUnits, globalChunkHeightInUnits,
@@ -1136,7 +1144,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 {
                     float w = globalChunkWidthInUnits;
                     float h = globalChunkHeightInUnits;
-                    v2 chunkPos = GetChunkWorldPos(i, j);
+                    v2 chunkPos = GetChunkCornerWorldPos(i, j);
                     chunk_info m = mainTilemap.map[i][j];
 
                     bool test_success = AABBTest(chunkPos + v2(w / 2.0f, h / 2.0f), w, h,
@@ -1271,12 +1279,12 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 QueryPerformanceFrequency(&freq); // TODO: don't do this every frame
             }
-            static LARGE_INTEGER perfCount, perfCountDifference;
+            static LARGE_INTEGER perfCount, perfCountDifference = {};
             LARGE_INTEGER lastPerfCount = perfCount;
             QueryPerformanceCounter(&perfCount);
             perfCountDifference.QuadPart = perfCount.QuadPart - lastPerfCount.QuadPart;
-            perfCountDifference.QuadPart *= 1000000;
-            perfCountDifference.QuadPart /= freq.QuadPart;
+            perfCountDifference.QuadPart *= 1000000LL;
+            perfCountDifference.QuadPart /= freq.QuadPart;            
 
             deltaTime = (perfCountDifference.QuadPart / 1000.0f);
 
