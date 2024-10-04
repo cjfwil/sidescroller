@@ -111,8 +111,8 @@ static inline v2 GetChunkCentreWorldPos(int i, int j)
 static inline v2 GetChunkCornerWorldPos(int i, int j)
 {
     float xp = -globalChunkWidthInUnits / 2.0f;
-    float yp = -globalChunkHeightInUnits / 2.0f;    
-    return (v2(xp, yp) + GetChunkCentreWorldPos(i, j));       
+    float yp = -globalChunkHeightInUnits / 2.0f;
+    return (v2(xp, yp) + GetChunkCentreWorldPos(i, j));
 }
 
 static inline bool AABBTest(float x1, float y1, float w1, float h1,
@@ -513,8 +513,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
             // **** tilemaps setup end ****
 
-            static const int numenemysW = 1;
-            static const int numenemysH = 1;
+            static const int numenemysW = 9;
+            static const int numenemysH = 5;
             static entity_info enemies[numenemysW][numenemysH] = {};
 
             static bool enemyInit = false;
@@ -820,8 +820,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             {
                 float x;
                 float y;
-                float w = 0.015f;
-                float h = w * 3;
+                float w = 32.0f / 768.0f * 2.0f;
+                float h = 32.0f / 768.0f * 2.0f;
                 float trajX = 0;
                 float trajY = 1.0f / 1.414f;
                 bool active = false;
@@ -838,6 +838,8 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             static float yEnemyShift = 0.0f;
             bool shiftEnemiesThisFrame = false;
             static int aniFrame = 0;
+
+            static bool facingRight = false;
 
             if (frameCount % enemyAdvanceRate == 0)
             {
@@ -987,9 +989,24 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 playerProjectile.x += playerProjectile.trajX / 60 * speed;
                 playerProjectile.y += playerProjectile.trajY / 60 * speed;
 
-                if (AABBTest(playerProjectile.x, playerProjectile.y, playerProjectile.w, playerProjectile.h,
-                             0, 0, 2 * screenEdge, 2)) // test playerProjectile against screen
+                if (AABBTest(v2(playerProjectile.x, playerProjectile.y), playerProjectile.w, playerProjectile.h,
+                             main_camera.pos, 2 * screenEdge, 2)) // test playerProjectile against screen
                 {
+                    int xi = (int)((playerProjectile.x+globalChunkWidthInUnits/2.0f)/globalChunkWidthInUnits);
+                    int yi = (int)((playerProjectile.y+globalChunkHeightInUnits/2.0f)/globalChunkHeightInUnits);
+                    chunk_info m = mainTilemap.map[xi][yi];
+                    for (int x = 0; x < globalChunkWidthInTiles; ++x)
+                    {
+                        for (int y = 0; y < globalChunkHeightInTiles; ++y)
+                        {
+                            v2 mp = GetChunkCornerWorldPos(xi,yi) + v2(x*globalTileWidth, y*globalTileWidth);
+                            if (m.data[x][y].isCollidable() && AABBTest(v2(playerProjectile.x, playerProjectile.y), playerProjectile.w, playerProjectile.h,
+                                                                    mp, globalTileWidth, globalTileWidth)) {
+                                playerProjectile.active = false;
+                            }
+                        }
+                    }
+
                     for (int x = 0; x < numenemysW; ++x)
                     {
                         for (int y = 0; y < numenemysH; ++y)
@@ -1048,6 +1065,16 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                 if (GetAsyncKeyState(VK_SPACE) & 0x8000)
                 {
                     // xa.Play(1, 1.0f);
+                    if (facingRight)
+                    {
+                        playerProjectile.trajY = 0;
+                        playerProjectile.trajX = 1.0f;
+                    }
+                    else
+                    {
+                        playerProjectile.trajY = 0;
+                        playerProjectile.trajX = -1.0f;
+                    }
                     playerProjectile.x = player.pos.x;
                     playerProjectile.y = player.pos.y;
                     playerProjectile.active = true;
@@ -1181,7 +1208,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             // end of tilemap drawing
 
             // renderer.DrawRect(player.pos.x - main_camera.pos.x, player.pos.y - main_camera.pos.y, player.width, player.height);
-            static bool facingRight = false;
+
             if (player.velocity.x != 0)
                 facingRight = (player.velocity.x > 0);
             if (player.velocity.y != 0)
@@ -1219,12 +1246,15 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             }
 
             if (playerProjectile.active)
-                renderer.DrawRect(playerProjectile.x - main_camera.pos.x, playerProjectile.y - main_camera.pos.y, playerProjectile.w, playerProjectile.h);
+            {
+                // renderer.DrawRect(playerProjectile.x - main_camera.pos.x, playerProjectile.y - main_camera.pos.y, playerProjectile.w, playerProjectile.h);
+                renderer.DrawGameTextureRect(playerProjectile.x - main_camera.pos.x, playerProjectile.y - main_camera.pos.y, playerProjectile.w, playerProjectile.h, 0, 0, 15, 15, 31, 0, 1, NULL);
+            }
             // if (enemyProjectile.active)
             //     renderer.DrawRect(enemyProjectile.x - main_camera.pos.x, enemyProjectile.y - main_camera.pos.y, enemyProjectile.w, enemyProjectile.h);
 
-            // if (ufo.alive)
-            //     renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height, 0, 0, 127 - 8, 17, 127);
+            if (ufo.alive)
+                renderer.DrawGameTextureRect(ufo.pos.x - main_camera.pos.x, ufo.pos.y - main_camera.pos.y, ufo.width, ufo.height, 0, 0, 127 - 8, 17, 127);
 
             float shieldW = (enemyDimScale * 0.5f) * 0.75f;
 
@@ -1239,9 +1269,9 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
                         sprite_animation anim = shield.anim;
                         clip_rect currentFrame = anim.frames[4 - shield.health];
 
-                        // renderer.DrawGameTextureRect(shield.pos.x - main_camera.pos.x, shield.pos.y - main_camera.pos.y, shield.width, shield.height, 0,
-                        //   currentFrame.point[0].x, currentFrame.point[0].y,
-                        //   currentFrame.point[1].x, currentFrame.point[1].y);
+                        renderer.DrawGameTextureRect(shield.pos.x - main_camera.pos.x, shield.pos.y - main_camera.pos.y, shield.width, shield.height, 0,
+                          currentFrame.point[0].x, currentFrame.point[0].y,
+                          currentFrame.point[1].x, currentFrame.point[1].y);
                     }
                 }
             }
@@ -1261,6 +1291,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 
                         // renderer.DrawGameTextureRect(enemy.pos.x - main_camera.pos.x, enemy.pos.y - main_camera.pos.y, enemy.width, enemy.height, 0,
                         //  x1, y1, x2, y2);
+                        renderer.DrawRect(enemy.pos.x - main_camera.pos.x, enemy.pos.y - main_camera.pos.y, enemy.width, enemy.height);
                     }
                 }
             }
@@ -1284,7 +1315,7 @@ INT WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
             QueryPerformanceCounter(&perfCount);
             perfCountDifference.QuadPart = perfCount.QuadPart - lastPerfCount.QuadPart;
             perfCountDifference.QuadPart *= 1000000LL;
-            perfCountDifference.QuadPart /= freq.QuadPart;            
+            perfCountDifference.QuadPart /= freq.QuadPart;
 
             deltaTime = (perfCountDifference.QuadPart / 1000.0f);
 
